@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="read_plate_pattern">
+        <item>读取商品</item>
+        <item>读取价格</item>
+    </string-array>
+    <string-array name="pay_pattern">
+        <item>手动消费</item>
+        <item>自动消费</item>
+    </string-array>
+</resources>

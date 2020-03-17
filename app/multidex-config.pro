@@ -1,0 +1,1 @@
+-keep class com.lianxi.dingtu.dingtu_plate.app.http.GlobalConfiguration

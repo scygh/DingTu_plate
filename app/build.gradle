@@ -1,0 +1,133 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    buildToolsVersion rootProject.ext.android["buildToolsVersion"]
+    useLibrary 'org.apache.http.legacy'
+    defaultConfig {
+        applicationId "com.lianxi.dingtu.dingtu_plate"
+        minSdkVersion rootProject.ext.android["minSdkVersion"]
+        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
+        versionCode rootProject.ext.android["versionCode"]
+        versionName rootProject.ext.android["versionName"]
+        testInstrumentationRunner rootProject.ext.dependencies["androidJUnitRunner"]
+        vectorDrawables.useSupportLibrary = true
+        vectorDrawables.generatedDensities = ['hdpi', 'xxhdpi']
+        multiDexEnabled true
+    }
+    buildTypes {
+        debug {
+            buildConfigField "boolean", "LOG_DEBUG", "true"
+            buildConfigField "boolean", "USE_CANARY", "false"
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            multiDexKeepProguard file('multidex-config.pro')
+        }
+
+        release {
+            buildConfigField "boolean", "LOG_DEBUG", "false"
+            buildConfigField "boolean", "USE_CANARY", "false"
+            minifyEnabled false
+            shrinkResources false
+            zipAlignEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            multiDexKeepProguard file('multidex-config.pro')
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (variant.buildType.name == 'release') {
+
+                outputFileName = "LangBang_${releaseTime()}_Business_${defaultConfig.versionName}.apk"
+
+            }
+        }
+    }
+
+    lintOptions {
+        disable 'InvalidPackage'
+        disable "ResourceType"
+        abortOnError false
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/jni/Android.mk'
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation rootProject.ext.dependencies["cardview-v7"]
+    implementation rootProject.ext.dependencies["design"]
+    implementation rootProject.ext.dependencies["androideventbus"]
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    annotationProcessor rootProject.ext.dependencies["dagger2-compiler"]
+    implementation rootProject.ext.dependencies["progressmanager"]
+    implementation rootProject.ext.dependencies["retrofit-url-manager"]
+    implementation rootProject.ext.dependencies["lifecyclemodel"]
+    annotationProcessor(rootProject.ext.dependencies["butterknife-compiler"]) {
+        exclude module: 'support-annotations'
+    }
+    implementation rootProject.ext.dependencies["paginate"]
+    implementation 'me.jessyan:arms:2.5.0'
+    implementation rootProject.ext.dependencies["multidex"]
+    implementation 'me.jessyan:arms-imageloader-glide:2.5.0'
+    testImplementation rootProject.ext.dependencies["junit"]
+    debugImplementation rootProject.ext.dependencies["canary-debug"]
+    releaseImplementation rootProject.ext.dependencies["canary-release"]
+    testImplementation rootProject.ext.dependencies["canary-release"]
+    implementation files('libs/commons-lang3-3.5.jar')
+    implementation files('libs/Msc.jar')
+    implementation rootProject.ext.dependencies["nfclib"]
+    implementation rootProject.ext.dependencies["bottom-bar"]
+    implementation rootProject.ext.dependencies["fastjson"]
+    implementation rootProject.ext.dependencies["swipeback"]
+    implementation rootProject.ext.dependencies["Toasty"]
+    implementation rootProject.ext.dependencies["rebound"]
+    implementation rootProject.ext.dependencies["material-dialogs"]
+    implementation rootProject.ext.dependencies["BaseRecyclerViewAdapterHelper"]
+    implementation rootProject.ext.dependencies["stepview"]
+    implementation rootProject.ext.dependencies["Android-PickerView"]
+    implementation rootProject.ext.dependencies["umeng-analytics"]
+    implementation rootProject.ext.dependencies["okgo"]
+    implementation rootProject.ext.dependencies["advancedluban"]
+    implementation rootProject.ext.dependencies["constraint-layout"]
+    implementation("com.serenegiant:common:${commonLibVersion}") {
+        exclude module: 'support-v4'
+    }
+    implementation 'com.github.yalantis:ucrop:2.2.3'
+    implementation 'com.github.ForgetAll:LoadingDialog:v1.1.0-alpha'
+    implementation 'com.annimon:stream:1.2.1'
+    implementation 'com.github.zhouzhuo810:OkUSB:1.0.0'
+    implementation 'com.google.android:flexbox:1.1.0'
+    implementation 'com.wefika:flowlayout:0.3.4'
+    implementation 'com.lzy.widget:imagepicker:0.6.1'
+    implementation 'com.contrarywind:wheelview:4.0.8'
+    //改动
+    implementation rootProject.ext.dependencies["blankj"]
+    implementation(name: 'wxfacepay-release', ext: 'aar')
+    implementation files('libs/printersdkv1.jar')
+}

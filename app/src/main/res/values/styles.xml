@@ -1,0 +1,103 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+
+    </style>
+    <style name="ToolBarTheme" parent="ThemeOverlay.AppCompat.Light">
+        <!-- navigation icon color -->
+        <item name="colorControlNormal">@color/color_62646c</item>
+        <item name="android:textColorPrimary">@color/color_4d4d4d</item>
+    </style>
+    <style name="Splash" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/loading_ic2</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+    <!-- toolbar标题样式 -->
+    <style name="ToolbarTitle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">18sp</item>
+    </style>
+    <!-- CustomCheckBox theme -->
+    <style name="CustomCheckBoxTheme" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/checkbox_style</item>
+    </style>
+    <style name="button_style" parent="ThemeOverlay.AppCompat">
+        <item name="colorButtonNormal">@color/colorAccent</item>
+    </style>
+    <style name="DialogTheme" parent="Theme.AppCompat.Dialog"></style>
+    <style name="dialogTransparent" parent="DialogTheme">
+        <!-- 更换背景图片实现全透明 -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+    <style name="dialogDimEnabledFalse" parent="dialogTransparent">
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+    <style name="load_dialog" parent="android:Theme.Holo.Light.Dialog">
+        <item name="android:windowBackground"> @color/transparent</item>
+        <item name="android:windowFrame">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- 密码输入框样式 -->
+    <style name="EditTextPasswordStyle">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:padding">15dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_edittext_border</item>
+        <item name="android:cursorVisible">true</item>
+        <item name="android:textColor">@color/black_general_title</item>
+        <item name="android:maxLength">1</item>
+        <item name="android:adjustViewBounds">true</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:enabled">true</item>
+    </style>
+
+    <!-- 弹窗Dialog样式 -->
+    <style name="PasswordDialog" parent="android:Theme.Dialog">
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+    <!--Dialog将白色背景变透明-->
+    <style name="Dialog" parent="android:style/Theme.Dialog">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+    <style name="bg">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">#F0F0F0</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+    <style name="empty_img">
+        <item name="android:layout_width">@dimen/def_height</item>
+        <item name="android:layout_height">@dimen/def_height</item>
+        <item name="android:layout_marginBottom">10dp</item>
+    </style>
+
+    <style name="action_btn_selected">
+        <item name="android:textColor">@color/textColorHighlight</item>
+        <item name="android:background">@color/bk_black</item>
+    </style>
+
+    <style name="TabLayoutStyle">
+        <item name="android:textSize">19sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+</resources>
