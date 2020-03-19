@@ -16,7 +16,9 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -34,6 +36,7 @@ import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.DeviceConnFactoryManager
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrinterCommand;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrintingTicketsUtil;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.ThreadPool;
+import com.lianxi.dingtu.dingtu_plate.app.Utils.Scanner;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.SpUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.StringUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.USBHelper;
@@ -138,6 +141,8 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     LinearLayout pay_operation;
     @BindView(R.id.tv_pay_operation)
     TextView tv_pay_operation;
+    @BindView(R.id.et_qr)
+    EditText et;
     private List<EMGoodsTo.GoodsBean> data = new ArrayList<>();
     private List<String> menu_data = new ArrayList<>();
     private PayGoodsAdapter adapter;
@@ -202,6 +207,7 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     private String menu_time = "";
     private boolean isAutopay;
     private boolean isPrint;
+    Scanner scanner;
 
     @Override
     public void setupActivityComponent(@NonNull AppComponent appComponent) {
@@ -591,75 +597,61 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
      * descirption: 打开usb监听卡和二维码
      */
     private void Pay() {
-        code = "";
-        usbHelper.close_read();
-        usbHelper.run();
-        usbHelper.AgreementOpen();
-        usbHelper.setUsbListening(new USBListening() {
-            @Override
-            public void findRFCardListening(String _code, int _number) {
-                try {
-                    code = _code;
-                    number = _number;
-                    mTotalPrice = Double.parseDouble(goods_price.getText().toString());
-                    Log.d("scy", "findRFCardListening: code：" + code + " number:" + number + " companyCode:" + companyCode + "  mTotalPrice:" + mTotalPrice);
-                    if (number != 0 && code.equals(companyCode + "") && mTotalPrice > 0.00) {
-                        usbHelper.PeakNoise();
-                        //先往卡里写数据
-                        CardInfoBean cardInfoBean = null;
-                        cardInfoBean = usbHelper.read_card();
-                        if (cardInfoBean != null) {
-                            Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                            int card_code = Integer.valueOf(cardInfoBean.getCode(), 16);
-                            if (code.equals(card_code + "")) {
-                                if (cardInfoBean.getCash_account() > mTotalPrice) {
-                                    Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
-                                    cardInfoBean.setCash_account(cash);
-                                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-                                    Date date = new Date(System.currentTimeMillis());
-                                    String Spending_time = formatter.format(date);
-                                    cardInfoBean.setSpending_time(Spending_time);
-                                    cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
-                                    Log.e(TAG, "findRFCardListening:支付 " + cash);
-                                    Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                                    if (usbHelper.write_card5(cardInfoBean)) {
-                                        //再去接口
-                                        mPresenter.onByNumber(number);
-                                    } else {
-                                        onPayFailure();
-                                    }
-                                } else {
-                                    ToastUtils.showShort("卡余额不足");
-                                }
-                            } else {
-                                //ToastUtils.showShort("卡号未匹配，请重新刷卡");
-                            }
-                        } else {
-                            AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
-                        }
-                    } else if (!code.equals(companyCode + "")) {
-                        AudioUtils.getInstance().speakText("非本单位卡");
-                    }
-                } catch (Exception e) {
-                    onPayFailure();
-                }
+        initQrPay();
+        //initCardPay();
+    }
 
+    private void initCardPay() {
+        mTotalPrice = Double.parseDouble(goods_price.getText().toString());
+        if (mTotalPrice > 0.00) {
+            CardInfoBean cardInfoBean = null;
+            cardInfoBean = usbHelper.read_card();
+            if (cardInfoBean != null) {
+                Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                if (cardInfoBean.getCash_account() > mTotalPrice) {
+                    Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
+                    cardInfoBean.setCash_account(cash);
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                    cardInfoBean.setSpending_time(formatter.format(new Date(System.currentTimeMillis())));
+                    cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
+                    number = cardInfoBean.getNum();
+                    Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                    if (usbHelper.write_card5(cardInfoBean)) {
+                        usbHelper.PeakNoise();
+                        mPresenter.onByNumber(number);
+                    } else {
+                        onPayFailure();
+                    }
+                } else {
+                    ToastUtils.showShort("请充值");
+                }
+            } else {
+                AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
+            }
+        } else {
+            AudioUtils.getInstance().speakText("请充值");
+        }
+    }
+
+    private void initQrPay() {
+        scanner = new Scanner(this);
+        scanner.setOnScanResultCallBack(new Scanner.OnScanResultCallBack() {
+            @Override
+            public void OnScanSucccess(String result) {
+                Log.d("Scanresult", "OnScanSucccess: " + result);
+                mTotalPrice = Double.parseDouble(goods_price.getText().toString());
+                if (result.length() > 0 && result != null && result != "" && mTotalPrice > 0.00) {
+                    usbHelper.PeakNoise();
+                    mPresenter.onScanQR(result, Double.valueOf(goods_price.getText().toString()), dataToQRExpense(data));
+                }
             }
 
             @Override
-            public void findQRListening(String QRcode) {
-                Log.d("scy", "findQRListening: QRcode" + QRcode + "  " + mTotalPrice);
-                try {
-                    mTotalPrice = Double.parseDouble(goods_price.getText().toString());
-                    if (QRcode.length() > 0 && QRcode != null && QRcode != "" && mTotalPrice > 0.00) {
-                        usbHelper.PeakNoise();
-                        mPresenter.onScanQR(QRcode, Double.valueOf(goods_price.getText().toString()), dataToQRExpense(data));
-                    }
-                } catch (Exception e) {
-                    onPayFailure();
-                }
+            public void OnScanFail(String errorMsg) {
+                AudioUtils.getInstance().speakText("扫码失败");
             }
         });
+        scanner.scan(et);
     }
 
     @Override
@@ -767,6 +759,8 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         }
         if (!isAutopay) {
             usbHelper.close_read();
+            scanner.clearScan();
+            et.setText("");
         }
         handler.sendEmptyMessage(4);
     }
