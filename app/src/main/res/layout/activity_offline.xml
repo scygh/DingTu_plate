@@ -417,7 +417,7 @@
                             android:layout_height="0dp"
                             android:layout_margin="8dp"
                             android:layout_weight="1"
-                            android:background="@color/YELLOWGREEN"
+                            android:background="@drawable/pay_btn_bg"
                             android:text="支付"
                             android:textColor="@color/WHITE"
                             android:textSize="28sp" />

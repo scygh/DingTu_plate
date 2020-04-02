@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
@@ -17,6 +18,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -122,6 +124,8 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     LinearLayout pay_operation;
     @BindView(R.id.tv_pay_operation)
     TextView tv_pay_operation;
+    @BindView(R.id.offline_pay_btn)
+    Button paybutton;
     private List<EMGoodsTo.GoodsBean> data = new ArrayList<>();
     private List<String> menu_data = new ArrayList<>();
     private PayGoodsAdapter adapter;
@@ -148,12 +152,12 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                         for (EMGoodsTo.GoodsBean goods : data) {
                             count = count + goods.getCount();
                             price = price + goods.getPrice() * goods.getCount();
-                            goods_price.setText(String.format("%.2f", price));
-                            if (isAutopay) {
-                                waitStatus();
-                            }
                         }
+                        goods_price.setText(String.format("%.2f", price));
                         goods_num.setText(count + "");
+                        if (isAutopay) {
+                            waitStatus();
+                        }
                     }
                     break;
                 case 2:
@@ -174,6 +178,13 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                         clear();
                     }
                     break;
+                case 5:
+                    initCardPay();
+                    break;
+                case 6:
+                    clearMytime();
+                    paybutton.setEnabled(true);
+                    break;
             }
             super.handleMessage(msg);
         }
@@ -189,6 +200,32 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     private String key = "";
     private boolean isPrint;
     private EMGoodsPayDetailRepo emGoodsPayDetailRepo = new EMGoodsPayDetailRepo(OfflineActivity.this);
+    private MyTime myTime;
+
+    class MyTime extends CountDownTimer {
+        public MyTime(long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
+            offline_pay_state_wait.setText("等待支付(" + millisUntilFinished / 1000 + ")");
+        }
+
+        @Override
+        public void onFinish() {
+            handler.sendEmptyMessage(6);
+            waitClear();
+            handler.removeMessages(5);//防止重复点击按钮
+        }
+    }
+
+    private void clearMytime() {
+        if (myTime != null) {
+            myTime.cancel();
+            myTime = null;
+        }
+    }
 
 
     @Override
@@ -229,10 +266,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         menuAdapter = new MenuAdapter(R.layout.item_menu, menu_data);
         offline_recy_menu.setAdapter(menuAdapter);
 
-        offline_pay_state_wait.setVisibility(View.GONE);
-        offline_pay_state_fail.setVisibility(View.GONE);
-        offline_pay_state_success.setVisibility(View.GONE);
-        offline_pay_blance.setVisibility(View.GONE);
+        waitClear();
 
         //开启自动支付
         usbHelper = USBHelper.getInstance(this);
@@ -454,6 +488,9 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
 
                 break;
             case R.id.offline_pay_btn:
+                paybutton.setEnabled(false);
+                myTime = new MyTime(60000, 1000);
+                myTime.start();
                 waitStatus();
                 Pay();
                 break;
@@ -466,10 +503,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 clear();
-                                offline_pay_state_wait.setVisibility(View.GONE);
-                                offline_pay_state_fail.setVisibility(View.GONE);
-                                offline_pay_state_success.setVisibility(View.GONE);
-                                offline_pay_blance.setVisibility(View.GONE);
+                                waitClear();
                             }
                         })
                         .setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -512,6 +546,13 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         }
     }
 
+    private void waitClear() {
+        offline_pay_state_wait.setVisibility(View.GONE);
+        offline_pay_state_fail.setVisibility(View.GONE);
+        offline_pay_state_success.setVisibility(View.GONE);
+        offline_pay_blance.setVisibility(View.GONE);
+    }
+
     private void waitStatus() {
         offline_pay_state_fail.setVisibility(View.GONE);
         offline_pay_state_success.setVisibility(View.GONE);
@@ -520,96 +561,91 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     }
 
     private void Pay() {
-        code = "";
-        usbHelper.close_read();
-        usbHelper.run();
-        usbHelper.AgreementOpen();
-        usbHelper.setUsbListening(new USBListening() {
-            @Override
-            public void findRFCardListening(String _code, int _number) {
-                try {
-                    code = _code;
-                    number = _number;
-                    mTotalPrice = Double.parseDouble(goods_price.getText().toString());
-                    if (number != 0 && code.equals(companyCode + "") && mTotalPrice > 0.00) {
-                        usbHelper.PeakNoise();
-                        CardInfoBean cardInfoBean = null;
-                        cardInfoBean = usbHelper.read_card();
-                        if (cardInfoBean != null) {
-                            Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                            int card_code = Integer.valueOf(cardInfoBean.getCode(), 16);
-                            if (code.equals(card_code + "")) {
-                                if (cardInfoBean.getCash_account() > 0) {
-                                    Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
-                                    cardInfoBean.setCash_account(cash);
-                                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                                    Date date = new Date(System.currentTimeMillis());
-                                    String Spending_time = formatter.format(date);
-                                    cardInfoBean.setSpending_time(Spending_time);
-                                    cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
-                                    Log.e(TAG, "findRFCardListening:支付 " + cash);
-                                    Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                                    if (usbHelper.write_card5(cardInfoBean)) {
-                                        /*cardInfoBean = usbHelper.read_card();
-                                        if (cardInfoBean != null && cardInfoBean.getCash_account() == cash) {*/
-                                        handler.sendEmptyMessage(4);
-                                        Sql_EMGoodsPayDetail sql_emGoodsPayDetail = new Sql_EMGoodsPayDetail();
-                                        sql_emGoodsPayDetail.setNumber(number);
-                                        sql_emGoodsPayDetail.setDeviceid(deviceID);
-                                        sql_emGoodsPayDetail.setAmount(mTotalPrice);
-                                        sql_emGoodsPayDetail.setTradedatetime(Spending_time);
-                                        sql_emGoodsPayDetail.setOfflinepaycount(cardInfoBean.getConsumption_num());
-                                        sql_emGoodsPayDetail.setUploadsuccess(0);
-                                        sql_emGoodsPayDetail.setPattern(pattern);
-                                        emGoodsPayDetailRepo.insert(sql_emGoodsPayDetail);
+        handler.removeMessages(5);//防止重复点击按钮
+        if (isAutopay) {
+            handler.sendEmptyMessageDelayed(5, 3000);
+        } else {
+            initCardPay();
+        }
+    }
 
-                                        if (isPrint) Printing();
-                                        offline_pay_state_wait.setVisibility(View.GONE);
-                                        offline_pay_state_fail.setVisibility(View.GONE);
-                                        offline_pay_state_success.setVisibility(View.VISIBLE);
-                                        offline_pay_blance.setVisibility(View.VISIBLE);
-                                        offline_pay_blance.setText("余额：" + cardInfoBean.getCash_account());
-                                        Balance = cardInfoBean.getCash_account();
-                                        if (menu_time != "") {
-                                            menuRepo.delete(menu_time);
-                                            handler.sendEmptyMessageDelayed(2, 500);
-                                        }
-                                        if (!isAutopay) usbHelper.close_read();
-                                        AudioUtils.getInstance().speakText("支付成功");
-                                        /*} else {
-                                            AudioUtils.getInstance().speakText("写卡失败，请重新刷卡");
-                                        }*/
-                                    } else {
-                                        AudioUtils.getInstance().speakText("支付失败");
-                                        offline_pay_state_wait.setVisibility(View.GONE);
-                                        offline_pay_state_fail.setVisibility(View.VISIBLE);
-                                        offline_pay_state_success.setVisibility(View.GONE);
-                                        offline_pay_blance.setVisibility(View.GONE);
-                                    }
-                                } else {
-                                    ToastUtils.showShort("请充值");
-                                }
-                            } else {
-                                ToastUtils.showShort("卡号未匹配，请重新刷卡");
-                            }
-                        } else {
-                            AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
-                        }
-                    } else if (!code.equals(companyCode + "")) {
-                        AudioUtils.getInstance().speakText("非本单位卡");
-                    }
-                } catch (Exception e) {
-
+    private void initCardPay() {
+        mTotalPrice = Double.parseDouble(goods_price.getText().toString());
+        if (mTotalPrice > 0.00) {
+            CardInfoBean cardInfoBean = null;
+            cardInfoBean = usbHelper.read_card();
+            if (cardInfoBean != null) {
+                Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片,或者错误则重新读卡
+                    handler.sendEmptyMessageDelayed(5, 500);
+                    return;
                 }
+                usbHelper.PeakNoise();
+                if (cardInfoBean.getCash_account() > mTotalPrice) {
+                    goToOfflinePay(cardInfoBean);
+                } else {
+                    ToastUtils.showShort("请充值");
+                    handler.sendEmptyMessageDelayed(5, 2000);
+                }
+            } else {
+                AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
+                handler.sendEmptyMessageDelayed(5, 2000);
             }
+        } else {
+            AudioUtils.getInstance().speakText("请识别餐盘");
+            handler.sendEmptyMessageDelayed(5, 2000);
+        }
+    }
 
-            @Override
-            public void findQRListening(String QRcode) {
-                AudioUtils.getInstance().speakText("离线模式不支持二维码支付");
-                Toast.makeText(OfflineActivity.this, "离线模式不支持二维码支付", Toast.LENGTH_SHORT).show();
-                handler.sendEmptyMessage(4);
+    private void goToOfflinePay(CardInfoBean cardInfoBean) {
+        Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
+        cardInfoBean.setCash_account(cash);
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date(System.currentTimeMillis());
+        String Spending_time = formatter.format(date);
+        cardInfoBean.setSpending_time(Spending_time);
+        cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
+        Log.e(TAG, "findRFCardListening:支付 " + cash);
+        Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+        if (usbHelper.write_card5(cardInfoBean)) {
+            handler.sendEmptyMessage(4);
+            Sql_EMGoodsPayDetail sql_emGoodsPayDetail = new Sql_EMGoodsPayDetail();
+            sql_emGoodsPayDetail.setNumber(cardInfoBean.getNum());
+            sql_emGoodsPayDetail.setDeviceid(deviceID);
+            sql_emGoodsPayDetail.setAmount(mTotalPrice);
+            sql_emGoodsPayDetail.setTradedatetime(Spending_time);
+            sql_emGoodsPayDetail.setOfflinepaycount(cardInfoBean.getConsumption_num());
+            sql_emGoodsPayDetail.setUploadsuccess(0);
+            sql_emGoodsPayDetail.setPattern(pattern);
+            emGoodsPayDetailRepo.insert(sql_emGoodsPayDetail);
+
+            if (isPrint) Printing();
+            offline_pay_state_wait.setVisibility(View.GONE);
+            offline_pay_state_fail.setVisibility(View.GONE);
+            offline_pay_state_success.setVisibility(View.VISIBLE);
+            offline_pay_blance.setVisibility(View.VISIBLE);
+            offline_pay_blance.setText("余额：" + cardInfoBean.getCash_account());
+            Balance = cardInfoBean.getCash_account();
+            if (menu_time != "") {
+                menuRepo.delete(menu_time);
+                handler.sendEmptyMessageDelayed(2, 500);
             }
-        });
+            handler.sendEmptyMessage(4);
+            if (isAutopay) {
+                handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+            }
+            AudioUtils.getInstance().speakText("支付成功");
+            handler.sendEmptyMessageDelayed(6, 3000);
+        } else {
+            if (isAutopay) {
+                handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+            }
+            AudioUtils.getInstance().speakText("支付失败");
+            offline_pay_state_wait.setVisibility(View.GONE);
+            offline_pay_state_fail.setVisibility(View.VISIBLE);
+            offline_pay_state_success.setVisibility(View.GONE);
+            offline_pay_blance.setVisibility(View.GONE);
+        }
     }
 
 
@@ -729,6 +765,9 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         }
         handler.removeCallbacksAndMessages(null);
         SerialPortApi.getInstance().removeResponse();
-        usbHelper.close();
+        if (usbHelper != null) {
+            usbHelper.close();
+        }
+        clearMytime();
     }
 }

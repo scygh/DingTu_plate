@@ -193,7 +193,7 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         SerialPortApi.getInstance().setResponse(new SerialPortApi.SerialPortResponse() {
             @Override
             public void onGetUpTo(String card, PlateCardInfo info) {
-                ToastUtils.showShort(card);
+                //ToastUtils.showShort(card);
                 uidSet.add(card);
                 uidList.clear();
                 uidList.addAll(uidSet);

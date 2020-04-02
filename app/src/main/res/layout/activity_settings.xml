@@ -334,6 +334,7 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:visibility="gone"
                     android:id="@+id/cache"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -346,6 +347,7 @@
                     android:textSize="30sp" />
 
                 <TextView
+                    android:visibility="gone"
                     android:id="@+id/version"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

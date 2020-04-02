@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
@@ -18,6 +19,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -143,6 +145,8 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     TextView tv_pay_operation;
     @BindView(R.id.et_qr)
     EditText et;
+    @BindView(R.id.online_pay_btn)
+    Button paybutton;
     private List<EMGoodsTo.GoodsBean> data = new ArrayList<>();
     private List<String> menu_data = new ArrayList<>();
     private PayGoodsAdapter adapter;
@@ -153,6 +157,8 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     private int companyCode;
     private int number = 0;//卡内码
     private String code = "";//单位代码
+    private MyTime myTime;
+
     @SuppressLint("HandlerLeak")
     Handler handler = new Handler() {
         @Override
@@ -193,10 +199,37 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                         clear();
                     }
                     break;
+                case 5:
+                    initCardPay();
+                    break;
+                case 6:
+                    clearMytime();
+                    paybutton.setEnabled(true);
+                    break;
             }
             super.handleMessage(msg);
         }
     };
+
+    class MyTime extends CountDownTimer {
+        public MyTime(long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
+            online_pay_state_wait.setText("等待支付(" + millisUntilFinished / 1000 + ")");
+        }
+
+        @Override
+        public void onFinish() {
+            handler.sendEmptyMessage(6);
+            waitClear();
+            scanner.clearScan();
+            handler.removeMessages(5);//防止重复点击按钮
+        }
+    }
+
     private USBHelper usbHelper;
     private Double mTotalPrice = 0.0;
     ;
@@ -252,10 +285,7 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         menuAdapter = new MenuAdapter(R.layout.item_menu, menu_data);
         online_recy_menu.setAdapter(menuAdapter);
         //支付状态
-        online_pay_state_wait.setVisibility(View.GONE);
-        online_pay_state_fail.setVisibility(View.GONE);
-        online_pay_state_success.setVisibility(View.GONE);
-        online_pay_blance.setVisibility(View.GONE);
+        waitClear();
         //初始化USB 单例
         usbHelper = USBHelper.getInstance(getApplicationContext());
         //根据消费模式判断支付操作的显示
@@ -506,13 +536,16 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                 Printing();
                 break;
             case R.id.online_pay_btn:
+                paybutton.setEnabled(false);
+                myTime = new MyTime(60000, 1000);
+                myTime.start();
                 waitStatus();
                 Pay();
                 break;
             case R.id.online_wxpay_btn:
-                if (!isAutopay) {
-                    usbHelper.close_read();
-                }
+                scanner.clearScan();
+                handler.removeMessages(5);//防止重复点击按钮
+                handler.sendEmptyMessage(6);
                 waitStatus();
                 GetFacePayAuthInfoParam param = new GetFacePayAuthInfoParam();
                 param.setDeviceID(deviceID);
@@ -524,7 +557,6 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                 param.setSubMchId((String) SpUtils.get(OnlineActivity.this, AppConstant.WxFacePay.PARAMS_REPORT_SUT_MCH_ID, ""));//子商户号
                 //获取用户信息
                 mPresenter.getFacePayAuthInfo(param);
-
                 Log.e(TAG, "response: GetFacePayAuthInfoParam:" + JSON.toJSONString(param));
                 break;
             case R.id.online_clear_btn:
@@ -536,10 +568,7 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 clear();
-                                online_pay_state_wait.setVisibility(View.GONE);
-                                online_pay_state_fail.setVisibility(View.GONE);
-                                online_pay_state_success.setVisibility(View.GONE);
-                                online_pay_blance.setVisibility(View.GONE);
+                                waitClear();
                             }
                         })
                         .setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -583,6 +612,13 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         }
     }
 
+    private void waitClear() {
+        online_pay_state_wait.setVisibility(View.GONE);
+        online_pay_state_fail.setVisibility(View.GONE);
+        online_pay_state_success.setVisibility(View.GONE);
+        online_pay_blance.setVisibility(View.GONE);
+    }
+
     /**
      * descirption: 等待支付状态
      */
@@ -596,9 +632,15 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     /**
      * descirption: 打开usb监听卡和二维码
      */
+
     private void Pay() {
+        handler.removeMessages(5);//防止重复点击按钮
         initQrPay();
-        //initCardPay();
+        if (isAutopay) {
+            handler.sendEmptyMessageDelayed(5, 3000);
+        } else {
+            initCardPay();
+        }
     }
 
     private void initCardPay() {
@@ -608,6 +650,11 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
             cardInfoBean = usbHelper.read_card();
             if (cardInfoBean != null) {
                 Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片
+                    handler.sendEmptyMessageDelayed(5, 500);
+                    return;
+                }
+                usbHelper.PeakNoise();
                 if (cardInfoBean.getCash_account() > mTotalPrice) {
                     Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
                     cardInfoBean.setCash_account(cash);
@@ -617,19 +664,21 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                     number = cardInfoBean.getNum();
                     Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
                     if (usbHelper.write_card5(cardInfoBean)) {
-                        usbHelper.PeakNoise();
                         mPresenter.onByNumber(number);
                     } else {
                         onPayFailure();
                     }
                 } else {
                     ToastUtils.showShort("请充值");
+                    handler.sendEmptyMessageDelayed(5, 2000);
                 }
             } else {
                 AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
+                handler.sendEmptyMessageDelayed(5, 2000);
             }
         } else {
-            AudioUtils.getInstance().speakText("请充值");
+            AudioUtils.getInstance().speakText("请识别餐盘");
+            handler.sendEmptyMessageDelayed(5, 2000);
         }
     }
 
@@ -641,7 +690,6 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                 Log.d("Scanresult", "OnScanSucccess: " + result);
                 mTotalPrice = Double.parseDouble(goods_price.getText().toString());
                 if (result.length() > 0 && result != null && result != "" && mTotalPrice > 0.00) {
-                    usbHelper.PeakNoise();
                     mPresenter.onScanQR(result, Double.valueOf(goods_price.getText().toString()), dataToQRExpense(data));
                 }
             }
@@ -702,6 +750,15 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
             handler.sendEmptyMessageDelayed(2, 500);
         }
         handler.sendEmptyMessage(4);
+        if (isAutopay) {
+            //不暂停扫码
+            handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+        } else {
+            //因为消费了，所以刷卡自动暂停了，需要手动暂停扫码
+            scanner.clearScan();
+            et.setText("");
+            handler.sendEmptyMessageDelayed(6, 3000);
+        }
     }
 
     @Override
@@ -739,6 +796,13 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
 
     @Override
     public void onPayFailure() {
+        if (isAutopay) {
+            handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+        }
+        payFail();
+    }
+
+    private void payFail() {
         online_pay_state_wait.setVisibility(View.GONE);
         online_pay_state_fail.setVisibility(View.VISIBLE);
         online_pay_state_success.setVisibility(View.GONE);
@@ -757,12 +821,23 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
             menuRepo.delete(menu_time);
             handler.sendEmptyMessageDelayed(2, 500);
         }
-        if (!isAutopay) {
-            usbHelper.close_read();
-            scanner.clearScan();
-            et.setText("");
+        if (isAutopay) {
+            //不暂停扫码
+            handler.sendEmptyMessageDelayed(5, 5000);//继续刷卡
+            clearMytime();
+        } else {
+            handler.removeMessages(5);//暂停刷卡
+            scanner.clearScan();//暂停扫码
+            handler.sendEmptyMessageDelayed(6, 3000);
         }
         handler.sendEmptyMessage(4);
+    }
+
+    private void clearMytime() {
+        if (myTime != null) {
+            myTime.cancel();
+            myTime = null;
+        }
     }
 
     /**
@@ -949,7 +1024,13 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
             threadPool.stopThreadPool();
             threadPool = null;
         }
-        usbHelper.close();
+        if (scanner != null) {
+            scanner.clearScan();
+        }
+        if (usbHelper != null) {
+            usbHelper.close();
+        }
+        clearMytime();
     }
 
     private ThreadPool threadPool;

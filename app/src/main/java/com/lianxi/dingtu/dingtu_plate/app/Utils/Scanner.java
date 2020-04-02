@@ -50,15 +50,16 @@ public class Scanner {
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 Log.d("canresult", "onKey: " + keyCode + event.getAction());
                 if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (editText.getText().toString().trim().length() == 18) {
-                        if (onScanResultCallBack != null) {
-                            onScanResultCallBack.OnScanSucccess(editText.getText().toString().trim());//返回结果值，看需要使用了
-                        } else {
-                            ToastUtils.showShort("请先点击支付");
-                        }
+                    //if (editText.getText().toString().trim().length() == 18) {
+                    if (onScanResultCallBack != null) {
+                        onScanResultCallBack.OnScanSucccess(editText.getText().toString().trim());//返回结果值，看需要使用了
                     } else {
-                        ToastUtils.showShort("无效二维码");
+                        ToastUtils.showShort("请先点击支付");
                     }
+                   /* } else {
+                        Log.d("qr", "onKey: " + editText.getText().toString().trim());
+                        ToastUtils.showShort("二维码无效");
+                    }*/
                     editText.post(new Runnable() {
                         @Override
                         public void run() {

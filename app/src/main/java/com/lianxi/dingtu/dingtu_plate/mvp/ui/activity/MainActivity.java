@@ -1,13 +1,16 @@
 package com.lianxi.dingtu.dingtu_plate.mvp.ui.activity;
 
+import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,9 +19,8 @@ import com.blankj.utilcode.util.ToastUtils;
 import com.jess.arms.base.BaseActivity;
 import com.jess.arms.di.component.AppComponent;
 import com.jess.arms.utils.ArmsUtils;
-
+import com.lianxi.dingtu.dingtu_plate.R;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.SpUtils;
-import com.lianxi.dingtu.dingtu_plate.app.Utils.UserInfoHelper;
 import com.lianxi.dingtu.dingtu_plate.app.api.AppConstant;
 import com.lianxi.dingtu.dingtu_plate.app.entity.OfflineExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.sql.EMGoodsPayDetailRepo;
@@ -26,10 +28,8 @@ import com.lianxi.dingtu.dingtu_plate.app.sql.Sql_EMGoodsPayDetail;
 import com.lianxi.dingtu.dingtu_plate.di.component.DaggerMainComponent;
 import com.lianxi.dingtu.dingtu_plate.mvp.contract.MainContract;
 import com.lianxi.dingtu.dingtu_plate.mvp.presenter.MainPresenter;
-import com.lianxi.dingtu.dingtu_plate.R;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
-
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import butterknife.BindView;
+import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 import static com.blankj.utilcode.util.NetworkUtils.isConnected;
@@ -58,14 +59,16 @@ import static com.lianxi.dingtu.dingtu_plate.app.Utils.wx.WxfacepayUtil.isSucces
  */
 public class MainActivity extends BaseActivity<MainPresenter> implements MainContract.View {
 
+    @BindView(R.id.offlinepay_record)
+    TextView offlinepayRecord;
     private Intent intent;
-
     @BindView(R.id.account)
     TextView account;
     @BindView(R.id.companycode)
     TextView companyCode;
     private ArrayList<Sql_EMGoodsPayDetail> payDetailList;
     private EMGoodsPayDetailRepo emGoodsPayDetailRepo;
+    ProgressDialog pd1;
 
     @Override
     public void setupActivityComponent(@NonNull AppComponent appComponent) {
@@ -163,9 +166,10 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
 
     @Override
     protected void onResume() {
+        emGoodsPayDetailRepo = new EMGoodsPayDetailRepo(MainActivity.this);
+        payDetailList = emGoodsPayDetailRepo.getEMGoodsListByUPLOADSUCCESS(0);
+        offlinepayRecord.setText(payDetailList.size() + " 条");
         if (isConnected()) {
-            emGoodsPayDetailRepo = new EMGoodsPayDetailRepo(MainActivity.this);
-            payDetailList = emGoodsPayDetailRepo.getEMGoodsListByUPLOADSUCCESS(0);
             Log.e(TAG, "scy2" + JSON.toJSONString(payDetailList));
             List<OfflineExpenseParam.OfflineExpenseBean> offlineExpenseBeanList = new ArrayList<>();
             if (payDetailList.size() > 0) {
@@ -183,19 +187,59 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
                     OfflineExpenseParam param = new OfflineExpenseParam();
                     param.setListOfflineExpense(offlineExpenseBeanList);
                     mPresenter.postPayDetail(param);
+                    pd1 = new ProgressDialog(this);
+                    pd1.setTitle("提示");
+                    pd1.setMessage("上传消费记录中...,请等待");
+                    pd1.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                    pd1.setCancelable(true);
+                    pd1.setMax(offlineExpenseBeanList.size());
+                    pd1.show();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            int i = 0;
+                            while (i < offlineExpenseBeanList.size()) {
+                                try {
+                                    Thread.sleep(1000);
+                                    pd1.incrementProgressBy(i);
+                                    i++;
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            handler.sendEmptyMessage(1);
+                        }
+                    }).start();
                 }
             }
+        } else {
+            ToastUtils.showShort("无网络连接");
         }
         super.onResume();
     }
 
     @Override
     public void OfflineExpenseResult(boolean iSuccess) {
-        ToastUtils.showShort("同步消费记录成功");
         if (iSuccess) {
             for (Sql_EMGoodsPayDetail emGoodsPayDetail : payDetailList) {
-                emGoodsPayDetailRepo.update(emGoodsPayDetail);
+                emGoodsPayDetailRepo.delete(emGoodsPayDetail);
             }
         }
     }
+
+    @SuppressLint("HandlerLeak")
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 1:
+                    offlinepayRecord.setText("0 条");
+                    pd1.dismiss();
+                    ToastUtils.showShort("同步" + payDetailList.size() + "条消费记录成功");
+                    break;
+            }
+            super.handleMessage(msg);
+        }
+    };
+
 }

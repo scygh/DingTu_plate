@@ -39,7 +39,8 @@ package="com.lianxi.dingtu.dingtu_plate">
     <activity android:name=".mvp.ui.activity.SynActivity" />
     <activity android:name=".mvp.ui.activity.WritePlateActivity" />
     <activity android:name=".mvp.ui.activity.OfflineActivity" />
-    <activity android:name=".mvp.ui.activity.OnlineActivity" />
+    <activity android:name=".mvp.ui.activity.OnlineActivity"
+        android:windowSoftInputMode="stateAlwaysHidden"/>
 
     <uses-library
         android:name="org.apache.http.legacy"

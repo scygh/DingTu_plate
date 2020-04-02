@@ -48,9 +48,28 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="单位代码"
+            android:layout_marginRight="16dp"
             android:textColor="@color/WHITE"
             android:textSize="22dp"
             android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="未上传离线消费条数："
+            android:textColor="@color/WHITE"
+            android:textSize="16dp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/offlinepay_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textColor="@color/WHITE"
+            android:textSize="16dp"
+            android:textStyle="bold" />
+
     </LinearLayout>
 
 

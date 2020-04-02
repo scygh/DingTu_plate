@@ -594,6 +594,29 @@ public class USBHelper {
         send();
     }
 
+    public void writeTest() {
+        SECOND = (byte) 0x05;
+        THRID = 0x00;
+        FOURTH = 0x05;
+        FIFTH = 0x00;
+        SIXTH = 0x30;
+        SEVENTH = 0x39;
+        EIGHTH = 0x69;
+        NINTH = 0x00;
+        TENTH = 0x00;
+        ELEVENTH = 0x00;
+        TWELFTH = 0x00;
+        THIRTEENTH = 0x01;
+        FOURTEENTH = 0x01;
+        FIFTEENTH = 0x01;
+        SIXTEENTH = 0x00;
+        SEVENTEENTH = 0x00;
+        EIGHTEENTH = 0x00;
+        NIGHTEENTH = 0x00;
+        TWENTY = 0x00;
+        send();
+    }
+
     /**
      * descirption: usb权限
      */
