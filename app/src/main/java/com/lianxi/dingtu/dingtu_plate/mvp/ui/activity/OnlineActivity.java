@@ -17,7 +17,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,15 +33,13 @@ import com.jess.arms.di.component.AppComponent;
 import com.jess.arms.utils.ArmsUtils;
 import com.lianxi.dingtu.dingtu_plate.R;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.AudioUtils;
-import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.DeviceConnFactoryManager;
-import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrinterCommand;
-import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrintingTicketsUtil;
-import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.ThreadPool;
+import com.lianxi.dingtu.dingtu_plate.app.Utils.GainschaUsbUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Scanner;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.SpUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.StringUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.USBHelper;
 import com.lianxi.dingtu.dingtu_plate.app.api.AppConstant;
+import com.lianxi.dingtu.dingtu_plate.app.base.MainApplication;
 import com.lianxi.dingtu.dingtu_plate.app.entity.CardInfoBean;
 import com.lianxi.dingtu.dingtu_plate.app.entity.CardInfoTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.EMGoodsTo;
@@ -54,7 +51,6 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseTo;
-import com.lianxi.dingtu.dingtu_plate.app.listening.USBListening;
 import com.lianxi.dingtu.dingtu_plate.app.sql.MenuRepo;
 import com.lianxi.dingtu.dingtu_plate.di.component.DaggerOnlineComponent;
 import com.lianxi.dingtu.dingtu_plate.mvp.contract.OnlineContract;
@@ -75,13 +71,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android_serialport_api.SerialPortApi;
 import butterknife.BindView;
 import butterknife.OnClick;
 
 import static com.jess.arms.utils.Preconditions.checkNotNull;
-import static com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.Constant.CONN_STATE_DISCONN;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.StringUtils.sub;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.wx.WxChatFacePay.ASK_FACE_PERMIT;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.wx.WxChatFacePay.ASK_FACE_PERMIT_CONTENT;
@@ -147,30 +144,56 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     EditText et;
     @BindView(R.id.online_pay_btn)
     Button paybutton;
-    private List<EMGoodsTo.GoodsBean> data = new ArrayList<>();
-    private List<String> menu_data = new ArrayList<>();
+    private List<EMGoodsTo.RowsBean.GoodsBean> data = new ArrayList<>();//商品列表
+    private List<String> menu_data = new ArrayList<>();//挂单列表
+    private String menu_time = "";
     private PayGoodsAdapter adapter;
     private MenuAdapter menuAdapter;
-    //装卡信息的集合
-    private HashMap<String, String> setPlate = new HashMap<>();
+    private HashMap<String, String> setPlate = new HashMap<>();//装卡信息的集合
     private boolean havingCard = false;
     private int companyCode;
     private int number = 0;//卡内码
     private String code = "";//单位代码
-    private MyTime myTime;
+    private MyTime myTime;//计时器
+    private GainschaUsbUtils gainschaUsbUtils;//打印机
+    private boolean isGainOpen = false;//打印机是否已经连接
+
+    private USBHelper usbHelper;//usb刷卡
+    private Scanner scanner;//usb扫码
+
+    private Double mTotalPrice = 0.0;//总价
+    private int deviceID;//设备号
+    private MenuRepo menuRepo = new MenuRepo(OnlineActivity.this);//挂单数据库
+    //微信人脸的数据
+    private String rawdata;
+    private String mAuthInfo;
+    private boolean isAutopay;//是否开启自动消费
+    private boolean isPrint;//是否开启打印
+
+    private int payCount;//支付次数
+    SimpleExpenseParam param = new SimpleExpenseParam();//简单消费实体
+    private String pwd = "";//支付密码
+    private ExecutorService singleExecutor;//线程池
+
+    private static final int UPDATE_MAIN_LISTADNPRICE = 1;
+    private static final int UPDATE_MENU_DATA = 2;
+    private static final int ISHAVINGCARD = 4;
+    private static final int INIT_READCARD_PAY = 5;
+    private static final int PAY_SUCCESS = 6;
+    private static final int PAYBUTTON_ENABLE = 7;
 
     @SuppressLint("HandlerLeak")
     Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case 1:
+                case UPDATE_MAIN_LISTADNPRICE:
                     if (adapter != null) {
                         //更新主列表 更新价格数量
                         adapter.notifyDataSetChanged();
                         int count = 0;
                         double price = 0.0;
-                        for (EMGoodsTo.GoodsBean goods : data) {
+                        for (EMGoodsTo.RowsBean.GoodsBean goods : data) {
                             count = count + goods.getCount();
                             price = price + goods.getPrice() * goods.getCount();
                         }
@@ -178,32 +201,39 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                         goods_price.setText(String.format("%.2f", price));
                         if (isAutopay) {
                             waitStatus();
+                        } else {
+                            clearStatus();
                         }
                     }
                     break;
-                case 2://更新挂单
+                case UPDATE_MENU_DATA://更新挂单
                     if (menuAdapter != null) {
                         menu_data.clear();
                         menu_data.addAll(menuRepo.getGoodsBeanListAllTime());
                         menuAdapter.notifyDataSetChanged();
                     }
                     break;
-                case 3://清空支付状态
-                    online_pay_state_success.setVisibility(View.GONE);
-                    online_pay_blance.setVisibility(View.GONE);
-                    break;
-                case 4:
+                case ISHAVINGCARD:
                     if (havingCard) {
-                        handler.sendEmptyMessageDelayed(4, 500);
+                        handler.sendEmptyMessageDelayed(ISHAVINGCARD, 500);
                     } else {
                         clear();
+                        if (isAutopay) {
+                            openReadCardAndScanQRCode();
+                        }
                     }
                     break;
-                case 5:
-                    initCardPay();
+                case INIT_READCARD_PAY:
+                    usbHelper.notBreakRead();
+                    initReadCardPay();
                     break;
-                case 6:
+                case PAY_SUCCESS:
                     clearMytime();
+                    et.setText("");
+                    paybutton.setEnabled(true);
+                    break;
+                case PAYBUTTON_ENABLE:
+                    //ToastUtils.showShort("打印机已连接");
                     paybutton.setEnabled(true);
                     break;
             }
@@ -211,36 +241,24 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         }
     };
 
-    class MyTime extends CountDownTimer {
+    private class MyTime extends CountDownTimer {
         public MyTime(long millisInFuture, long countDownInterval) {
             super(millisInFuture, countDownInterval);
         }
 
         @Override
         public void onTick(long millisUntilFinished) {
-            online_pay_state_wait.setText("等待支付(" + millisUntilFinished / 1000 + ")");
+            online_pay_state_wait.setText("等待支付(" + millisUntilFinished / 1000 + "s)");
         }
 
         @Override
         public void onFinish() {
-            handler.sendEmptyMessage(6);
-            waitClear();
+            clearStatus();
             scanner.clearScan();
-            handler.removeMessages(5);//防止重复点击按钮
+            handler.sendEmptyMessage(PAY_SUCCESS);
+            handler.removeMessages(INIT_READCARD_PAY);//防止重复点击按钮
         }
     }
-
-    private USBHelper usbHelper;
-    private Double mTotalPrice = 0.0;
-    ;
-    private int deviceID;
-    private MenuRepo menuRepo = new MenuRepo(OnlineActivity.this);
-    private String rawdata;
-    private String mAuthInfo;
-    private String menu_time = "";
-    private boolean isAutopay;
-    private boolean isPrint;
-    Scanner scanner;
 
     @Override
     public void setupActivityComponent(@NonNull AppComponent appComponent) {
@@ -284,101 +302,6 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         menu_data = new ArrayList<>(set);
         menuAdapter = new MenuAdapter(R.layout.item_menu, menu_data);
         online_recy_menu.setAdapter(menuAdapter);
-        //支付状态
-        waitClear();
-        //初始化USB 单例
-        usbHelper = USBHelper.getInstance(getApplicationContext());
-        //根据消费模式判断支付操作的显示
-        if (isAutopay) {
-            pay_operation.setVisibility(View.GONE);
-            tv_pay_operation.setVisibility(View.GONE);
-            Pay();
-        } else {
-            pay_operation.setVisibility(View.VISIBLE);
-            tv_pay_operation.setVisibility(View.VISIBLE);
-        }
-        //底层串口
-        SerialPortApi.initPort();
-        SerialPortApi.getInstance().setResponse(new SerialPortApi.SerialPortResponse() {
-
-            @Override
-            public void onGetUpTo(String card, PlateCardInfo info) {
-                Log.e("SPA", "onGetUpTo: " + JSON.toJSONString(info));
-
-                //判断盘子内是否有数据
-                if (info.getCompanyCode() == null) return;
-
-                if (info.getGoodsPrice() == 0.0 && info.getDate().equals("00000000")) {
-                    AudioUtils.getInstance().speakText("无数据盘");
-                    return;
-                }
-
-                //判断盘子是否在有效期内
-                try {
-                    if (!isDateQualified(info.getDate())) {
-                        AudioUtils.getInstance().speakText("过期餐盘");
-                        return;
-                    }
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-                //判断盘子是否重复
-                if (!setPlate.containsKey(card)) {
-                    setPlate.put(card, info.getGoodsNum());
-                } else {
-                    return;
-                }
-                //判断是否是商品模式（0）or价格模式（1）
-                Log.e(TAG, "onGetUpTo: " + plate_read_pattern);
-                if (plate_read_pattern == 0) {
-                    //商品模式 询问接口获取
-                    mPresenter.getEMGoodsByNum(Integer.parseInt(info.getGoodsNum()));
-                } else if (plate_read_pattern == 1) {
-                    //价格模式 直接调用方法传入
-                    EMGoodsTo.GoodsBean goodsBean = new EMGoodsTo.GoodsBean();
-                    goodsBean.setCount(1);
-                    goodsBean.setPrice(info.getGoodsPrice());
-                    goodsBean.setGoodsName(info.getGoodsPrice() + "元商品");
-                    goodsBean.setGoodsNo(Integer.parseInt(info.getGoodsNum()));
-                    getEMGoodsByNum(goodsBean);
-                }
-
-            }
-
-            @Override
-            public void onCheckFail() {
-
-            }
-
-            @Override
-            public void onOperatorSuccess(String msg) {
-                if (msg.equals(SerialPortApi.HAVECARD)) {//如果读uid模式发现有卡就走大循环
-                    havingCard = true;
-                    SerialPortApi.openReadPattern(handler);//这个模式就会有卡信息返回
-                    changeToSinglePattern(2000);
-                }
-                if (msg.equals(SerialPortApi.NOCARD)) {//如果读uid模式发现没卡就走小循环
-                    havingCard = false;
-                    changeToSinglePattern(1000);
-                }
-            }
-        });
-        SerialPortApi.singleResponsePattern(handler);//开启循环入口
-
-        /**
-         * descirption: MainActivity中先初始化获取子商户号
-         */
-        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
-            @Override
-            public void response(Map info) throws RemoteException {
-                if (!isSuccessInfo(info)) {
-                    return;
-                }
-                showToast("response | getWxpayfaceRawdata");
-                rawdata = info.get("rawdata").toString();
-            }
-        });
         //菜品数量加减
         adapter.setOnItemChildClickListener(new BaseQuickAdapter.OnItemChildClickListener() {
             @Override
@@ -461,6 +384,144 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                 }
             }
         });
+
+        //初始化线程池，有三个核心线程的线程池
+        singleExecutor = Executors.newFixedThreadPool(3);
+        /*//初始化打印机
+        gainschaUsbUtils = new GainschaUsbUtils(MainApplication.getGainContext());
+        gainschaUsbUtils.setOnGainSchaUsbListener(new GainschaUsbUtils.OnGainSchaUsbListener() {
+            @Override
+            public void onConnect(String deviceConnect) {
+                if (deviceConnect.equals("已连接")) {
+                    isGainOpen = true;
+                    handler.sendEmptyMessage(PAYBUTTON_ENABLE);
+                } else {
+                    isGainOpen = false;
+                }
+            }
+
+            @Override
+            public void onStatus(String deviceStatus) {
+
+            }
+
+            @Override
+            public void onCommandTypes(String deviceType) {
+
+            }
+        });
+        //延迟3秒去打开打印机
+        singleExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(3000);
+                    gainschaUsbUtils.openConnect();
+                    Log.d("deviceConnect", "onConnect: 1");
+                } catch (Exception e) {
+
+                }
+            }
+        });*/
+
+        //初始化音频
+        AudioUtils.getInstance().init(MainApplication.getMainContext());
+        //初始化usb刷卡
+        usbHelper = USBHelper.getInstance(MainApplication.getMainContext());
+        //初始化串口循环
+        initPort(plate_read_pattern);
+
+        //MainActivity中先初始化获取子商户号
+        WxPayFace.getInstance().getWxpayfaceRawdata(new IWxPayfaceCallback() {
+            @Override
+            public void response(Map info) throws RemoteException {
+                if (!isSuccessInfo(info)) {
+                    return;
+                }
+                showToast("response | getWxpayfaceRawdata");
+                rawdata = info.get("rawdata").toString();
+            }
+        });
+
+        //初始化支付状态
+        clearStatus();
+        //根据消费模式判断支付操作的显示
+        if (isAutopay) {
+            pay_operation.setVisibility(View.GONE);
+            tv_pay_operation.setVisibility(View.GONE);
+            openReadCardAndScanQRCode();
+        } else {
+            pay_operation.setVisibility(View.VISIBLE);
+            tv_pay_operation.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * descirption: 初始化串口
+     */
+    public void initPort(int plate_read_pattern) {
+        SerialPortApi.initPort();
+        SerialPortApi.getInstance().setResponse(new SerialPortApi.SerialPortResponse() {
+
+            @Override
+            public void onGetUpTo(String card, PlateCardInfo info) {
+                //判断盘子内是否有数据
+                card = info.getCardNum();
+                if (info.getCompanyCode() == null) return;
+                if (info.getGoodsPrice() == 0.0 && info.getDate().equals("00000000")) {
+                    AudioUtils.getInstance().speakText("无数据盘");
+                    return;
+                }
+                //判断盘子是否在有效期内
+                try {
+                    if (!isDateQualified(info.getDate())) {
+                        AudioUtils.getInstance().speakText("过期餐盘");
+                        return;
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                //判断盘子是否重复
+                if (!setPlate.containsKey(card)) {
+                    setPlate.put(card, info.getGoodsNum());
+                } else {
+                    return;
+                }
+                //判断是否是商品模式（0）or价格模式（1）
+                if (plate_read_pattern == 0) {
+                    //商品模式 询问接口获取
+                    mPresenter.getEMGoodsByNum(Integer.parseInt(info.getGoodsNum()));
+                } else if (plate_read_pattern == 1) {
+                    //价格模式 直接调用方法传入
+                    EMGoodsTo.RowsBean.GoodsBean goodsBean = new EMGoodsTo.RowsBean.GoodsBean();
+                    goodsBean.setCount(1);
+                    goodsBean.setPrice(info.getGoodsPrice());
+                    goodsBean.setGoodsName(info.getGoodsPrice() + "元商品");
+                    goodsBean.setGoodsNo(Integer.parseInt(info.getGoodsNum()));
+                    getEMGoodsByNum(goodsBean);
+                }
+
+            }
+
+            @Override
+            public void onCheckFail() {
+
+            }
+
+            @Override
+            public void onOperatorSuccess(String msg) {
+                if (msg.equals(SerialPortApi.HAVECARD)) {//如果读uid模式发现有卡就走大循环
+                    havingCard = true;
+                    SerialPortApi.openReadPattern(handler);//这个模式就会有卡信息返回
+                    changeToSinglePattern(2000);
+                }
+                if (msg.equals(SerialPortApi.NOCARD)) {//如果读uid模式发现没卡就走小循环
+                    havingCard = false;
+                    changeToSinglePattern(1000);
+                }
+            }
+        });
+        SerialPortApi.singleResponsePattern(handler);//开启循环入口
     }
 
     /**
@@ -480,20 +541,16 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
      */
     private boolean isDateQualified(String date) throws ParseException {
         int H = Integer.parseInt((String) SpUtils.get(OnlineActivity.this, AppConstant.Receipt.PLATE_INDATE, "0"));//小时
-
         //当有效期为0小时时=无有效期
         if (H == 0) return true;
-
         //餐盘内时间
         String plate_date = "20" + date;
         DateFormat df = new SimpleDateFormat("yyyyMMddHH");
         Date date_plate = df.parse(plate_date);
-
         //系统时间
         Date date_now = new Date(System.currentTimeMillis());
         //系统时间-有效期
         Date newDate2 = new Date(date_now.getTime() - (long) H * 60 * 60 * 1000);
-
         if (date_plate.getTime() < newDate2.getTime()) {
             return false;
         } else {
@@ -501,8 +558,11 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         }
     }
 
+    /**
+     * descirption:查询后回调，更新列表
+     */
     @Override
-    public void getEMGoodsByNum(EMGoodsTo.GoodsBean goodsBean) {
+    public void getEMGoodsByNum(EMGoodsTo.RowsBean.GoodsBean goodsBean) {
         if (goodsBean == null) {
             return;
         }
@@ -511,10 +571,10 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
             goodsBean.setCount(1);
             data.add(goodsBean);
         } else if (data.size() > 0) {//如果不为空就判断是否是已经存在的数量需要增加
-            List<EMGoodsTo.GoodsBean> goodsBeanList = new ArrayList<>();
+            List<EMGoodsTo.RowsBean.GoodsBean> goodsBeanList = new ArrayList<>();
             goodsBeanList.addAll(data);
             data.clear();
-            for (EMGoodsTo.GoodsBean goods : goodsBeanList) {
+            for (EMGoodsTo.RowsBean.GoodsBean goods : goodsBeanList) {
                 if (goods.getGoodsNo() == goodsBean.getGoodsNo()) {
                     goods.setCount(goods.getCount() + 1);
                     i = 1;
@@ -526,25 +586,22 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                 data.add(goodsBean);
             }
         }
-        handler.sendEmptyMessage(1);
+        handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE); //更新主列表 更新价格数量
     }
 
-    @OnClick({R.id.online_plusone_btn, R.id.online_pay_btn, R.id.online_wxpay_btn, R.id.online_clear_btn, R.id.online_save_btn, R.id.online_take_btn})
+    @OnClick({R.id.online_pay_btn, R.id.online_wxpay_btn, R.id.online_clear_btn, R.id.online_save_btn, R.id.online_take_btn})
     public void onViewClicked(View view) {
         switch (view.getId()) {
-            case R.id.online_plusone_btn:
-                Printing();
-                break;
             case R.id.online_pay_btn:
                 paybutton.setEnabled(false);
                 myTime = new MyTime(60000, 1000);
                 myTime.start();
                 waitStatus();
-                Pay();
+                openReadCardAndScanQRCode();
                 break;
             case R.id.online_wxpay_btn:
                 scanner.clearScan();
-                handler.removeMessages(5);//防止重复点击按钮
+                handler.removeMessages(INIT_READCARD_PAY);//防止重复点击按钮
                 handler.sendEmptyMessage(6);
                 waitStatus();
                 GetFacePayAuthInfoParam param = new GetFacePayAuthInfoParam();
@@ -567,8 +624,8 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                         .setPositiveButton("确认", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                clear();
-                                waitClear();
+                                clear();//清理更新列表数据
+                                clearStatus();//清空状态
                             }
                         })
                         .setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -578,7 +635,6 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                             }
                         }).create();
                 dialog.show();
-
                 break;
             case R.id.online_save_btn:
                 try {
@@ -586,14 +642,14 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                         Date date = new Date(System.currentTimeMillis());
                         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         String time = simpleDateFormat.format(date);
-                        for (EMGoodsTo.GoodsBean goodsBean : data) {
+                        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : data) {
                             goodsBean.setTime(time);
                             menuRepo.insert(goodsBean);
                         }
                         Toast.makeText(OnlineActivity.this, "已成功挂起订单：" + time, Toast.LENGTH_SHORT).show();
                         AudioUtils.getInstance().speakText("挂单成功");
-                        handler.sendEmptyMessageDelayed(2, 500);
-                        handler.sendEmptyMessage(4);
+                        handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
+                        handler.sendEmptyMessage(ISHAVINGCARD);
                     } else {
                         Toast.makeText(OnlineActivity.this, "商品列表为空！", Toast.LENGTH_SHORT).show();
                         AudioUtils.getInstance().speakText("商品列表为空");
@@ -606,13 +662,16 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
 
                 break;
             case R.id.online_take_btn:
-                handler.sendEmptyMessageDelayed(2, 500);
+                handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
                 online_drawerLayout.openDrawer(online_right);
                 break;
         }
     }
 
-    private void waitClear() {
+    /**
+     * descirption: 清空支付状态和金额
+     */
+    private void clearStatus() {
         online_pay_state_wait.setVisibility(View.GONE);
         online_pay_state_fail.setVisibility(View.GONE);
         online_pay_state_success.setVisibility(View.GONE);
@@ -632,58 +691,65 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     /**
      * descirption: 打开usb监听卡和二维码
      */
-
-    private void Pay() {
-        handler.removeMessages(5);//防止重复点击按钮
+    private void openReadCardAndScanQRCode() {
+        handler.removeMessages(INIT_READCARD_PAY);//防止重复调用initReadCardPay
         initQrPay();
-        if (isAutopay) {
-            handler.sendEmptyMessageDelayed(5, 3000);
-        } else {
-            initCardPay();
-        }
+        usbHelper.notBreakRead();
+        initReadCardPay();
     }
 
-    private void initCardPay() {
-        mTotalPrice = Double.parseDouble(goods_price.getText().toString());
-        if (mTotalPrice > 0.00) {
-            CardInfoBean cardInfoBean = null;
-            cardInfoBean = usbHelper.read_card();
-            if (cardInfoBean != null) {
-                Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片
-                    handler.sendEmptyMessageDelayed(5, 500);
+
+    /**
+     * descirption: 开启usb刷卡
+     */
+    private void initReadCardPay() {
+        singleExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mTotalPrice = Double.parseDouble(goods_price.getText().toString());
+                if (mTotalPrice <= 0.00) {//
+                    ToastUtils.showShort("请识别餐盘");
+                    handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 2000);
                     return;
                 }
-                usbHelper.PeakNoise();
-                if (cardInfoBean.getCash_account() > mTotalPrice) {
-                    Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
-                    cardInfoBean.setCash_account(cash);
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-                    cardInfoBean.setSpending_time(formatter.format(new Date(System.currentTimeMillis())));
-                    cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
-                    number = cardInfoBean.getNum();
-                    Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                    if (usbHelper.write_card5(cardInfoBean)) {
-                        mPresenter.onByNumber(number);
+                CardInfoBean cardInfoBean = null;
+                cardInfoBean = usbHelper.read_card();
+                if (cardInfoBean != null) {
+                    Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                    if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片
+                        handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 500);
+                        return;
+                    }
+                    usbHelper.PeakNoise();
+                    if (cardInfoBean.getCash_account() > mTotalPrice) {
+                        Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
+                        cardInfoBean.setCash_account(cash);
+                        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                        cardInfoBean.setSpending_time(formatter.format(new Date(System.currentTimeMillis())));
+                        cardInfoBean.setConsumption_num(cardInfoBean.getConsumption_num() + 1);
+                        number = cardInfoBean.getNum();
+                        Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                        if (usbHelper.write_card5(cardInfoBean)) {
+                            mPresenter.onByNumber(number);
+                        } else {
+                            onPayFailure();
+                        }
                     } else {
-                        onPayFailure();
+                        ToastUtils.showShort("余额不足，请充值");
+                        handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 2000);
                     }
                 } else {
-                    ToastUtils.showShort("请充值");
-                    handler.sendEmptyMessageDelayed(5, 2000);
+                    ToastUtils.showShort("没读到卡，刷卡停止");
                 }
-            } else {
-                AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
-                handler.sendEmptyMessageDelayed(5, 2000);
             }
-        } else {
-            AudioUtils.getInstance().speakText("请识别餐盘");
-            handler.sendEmptyMessageDelayed(5, 2000);
-        }
+        });
     }
 
+    /**
+     * descirption: 开启usb扫码
+     */
     private void initQrPay() {
-        scanner = new Scanner(this);
+        scanner = new Scanner(OnlineActivity.this);
         scanner.setOnScanResultCallBack(new Scanner.OnScanResultCallBack() {
             @Override
             public void OnScanSucccess(String result) {
@@ -702,16 +768,19 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         scanner.scan(et);
     }
 
+    /**
+     * descirption: 识别到卡查询后回调返回卡信息
+     */
     @Override
     public void onCardInfo(CardInfoTo cardInfoTo) {
         Log.e(TAG, "onCardInfo: " + JSON.toJSONString(cardInfoTo));
         payCount = cardInfoTo.getPayCount();
         mPresenter.getPaySgetPayKeySwitch2();
-        if (!isAutopay) {
-            usbHelper.close_read();
-        }
     }
 
+    /**
+     * descirption: 是否有卡密码
+     */
     @Override
     public void creatBill(boolean keyEnabled) {
         if (payCount == -1) {
@@ -734,70 +803,43 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         }
     }
 
+    /**
+     * descirption: 消费成功
+     */
     @Override
     public void creatSimpleSuccess(SimpleExpenseTo simpleExpenseTo) {
+        if (isPrint) {
+            Printing();
+        }
         AudioUtils.getInstance().speakText("支付成功");
-        if (isPrint) Printing();
-
         online_pay_state_wait.setVisibility(View.GONE);
         online_pay_state_fail.setVisibility(View.GONE);
         online_pay_state_success.setVisibility(View.VISIBLE);
         online_pay_blance.setVisibility(View.VISIBLE);
         online_pay_blance.setText("余额：" + simpleExpenseTo.getExpenseDetail().getBalance());
-        Balance = simpleExpenseTo.getExpenseDetail().getBalance();
         if (menu_time != "") {
             menuRepo.delete(menu_time);
-            handler.sendEmptyMessageDelayed(2, 500);
+            handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);//更新挂单
         }
-        handler.sendEmptyMessage(4);
+        handler.sendEmptyMessageDelayed(ISHAVINGCARD, 1000);//根据餐盘状态，清空列表
         if (isAutopay) {
-            //不暂停扫码
-            handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+            //刷卡成功了自动结束，手动关闭扫码，等待餐盘取走再开启。
+            scanner.clearScan();
+            scanner = null;
         } else {
             //因为消费了，所以刷卡自动暂停了，需要手动暂停扫码
             scanner.clearScan();
-            et.setText("");
-            handler.sendEmptyMessageDelayed(6, 3000);
+            scanner = null;
+            handler.sendEmptyMessageDelayed(PAY_SUCCESS, 3000);//去清空定时和可使用按钮
         }
     }
-
-    @Override
-    public void showLoading() {
-
-    }
-
-    @Override
-    public void hideLoading() {
-
-    }
-
-    @Override
-    public void showMessage(@NonNull String message) {
-        checkNotNull(message);
-        ArmsUtils.snackbarText(message);
-    }
-
-    @Override
-    public void launchActivity(@NonNull Intent intent) {
-        checkNotNull(intent);
-        ArmsUtils.startActivity(intent);
-    }
-
-    @Override
-    public void killMyself() {
-        finish();
-    }
-
-    private int payCount;
-    SimpleExpenseParam param = new SimpleExpenseParam();
-    private String pwd = "";
-    //小票打印是否显示余额
-    private double Balance = 0.0;
 
     @Override
     public void onPayFailure() {
         if (isAutopay) {
-            handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+            handler.removeMessages(INIT_READCARD_PAY);
+            usbHelper.breakRead();
+            handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 5000);//继续开启刷卡
         }
         payFail();
     }
@@ -811,28 +853,38 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
 
     @Override
     public void onQRPaySuccess(QRExpenseTo qrExpenseTo) {
+        if (isPrint) {
+            Printing();
+        }
         AudioUtils.getInstance().speakText("支付成功");
-        if (isPrint) Printing();
         online_pay_state_wait.setVisibility(View.GONE);
         online_pay_state_fail.setVisibility(View.GONE);
         online_pay_state_success.setVisibility(View.VISIBLE);
         online_pay_blance.setVisibility(View.GONE);
         if (menu_time != "") {
             menuRepo.delete(menu_time);
-            handler.sendEmptyMessageDelayed(2, 500);
+            handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);//更新挂单
         }
         if (isAutopay) {
-            //不暂停扫码
-            handler.sendEmptyMessageDelayed(5, 5000);//继续刷卡
+            handler.removeMessages(INIT_READCARD_PAY);
+            usbHelper.breakRead();//暂停刷卡
+            scanner.clearScan();//暂停扫码
+            scanner = null;
             clearMytime();
         } else {
-            handler.removeMessages(5);//暂停刷卡
+            //暂停刷卡
+            handler.removeMessages(INIT_READCARD_PAY);
+            usbHelper.breakRead();
             scanner.clearScan();//暂停扫码
-            handler.sendEmptyMessageDelayed(6, 3000);
+            scanner = null;
+            handler.sendEmptyMessageDelayed(PAY_SUCCESS, 3000);
         }
-        handler.sendEmptyMessage(4);
+        handler.sendEmptyMessageDelayed(ISHAVINGCARD, 1000);//当盘子被拿走时自动清空状态和列表
     }
 
+    /**
+     * descirption: 取消回收计时
+     */
     private void clearMytime() {
         if (myTime != null) {
             myTime.cancel();
@@ -920,20 +972,23 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     @Override
     public void onWxfacePaySuccess(WxExpenseTo wxExpenseTo) {
         AudioUtils.getInstance().speakText("支付成功");
-        if (isPrint) Printing();
         WxPayFace.getInstance().releaseWxpayface(OnlineActivity.this);
         online_pay_state_wait.setVisibility(View.GONE);
         online_pay_state_fail.setVisibility(View.GONE);
         online_pay_state_success.setVisibility(View.VISIBLE);
         online_pay_blance.setVisibility(View.GONE);
-
         if (menu_time != "") {
             menuRepo.delete(menu_time);
-            handler.sendEmptyMessageDelayed(2, 500);
+            handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
         }
-        handler.sendEmptyMessage(4);
+        if (isPrint)
+            Printing();
+        handler.sendEmptyMessageDelayed(ISHAVINGCARD, 3000);
     }
 
+    /**
+     * descirption: 密码框
+     */
     PayDialog payDialog = null;
 
     void createPayDialog() {
@@ -963,9 +1018,9 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         payDialog.setCanceledOnTouchOutside(false);
     }
 
-    private List<WxExpenseParam.ListGoodsBean> dataToWxExpense(List<EMGoodsTo.GoodsBean> data) {
+    private List<WxExpenseParam.ListGoodsBean> dataToWxExpense(List<EMGoodsTo.RowsBean.GoodsBean> data) {
         List<WxExpenseParam.ListGoodsBean> listGoodsBeans = new ArrayList<>();
-        for (EMGoodsTo.GoodsBean goodsBean : data) {
+        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : data) {
             WxExpenseParam.ListGoodsBean listGoodsBean = new WxExpenseParam.ListGoodsBean();
             listGoodsBean.setGoodsNo(goodsBean.getGoodsNo());
             listGoodsBean.setCount(goodsBean.getCount());
@@ -974,9 +1029,9 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         return listGoodsBeans;
     }
 
-    private List<SimpleExpenseParam.ListGoodsBean> dataToSimpleExpense(List<EMGoodsTo.GoodsBean> data) {
+    private List<SimpleExpenseParam.ListGoodsBean> dataToSimpleExpense(List<EMGoodsTo.RowsBean.GoodsBean> data) {
         List<SimpleExpenseParam.ListGoodsBean> listGoodsBeans = new ArrayList<>();
-        for (EMGoodsTo.GoodsBean goodsBean : data) {
+        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : data) {
             SimpleExpenseParam.ListGoodsBean listGoodsBean = new SimpleExpenseParam.ListGoodsBean();
             listGoodsBean.setGoodsNo(goodsBean.getGoodsNo());
             listGoodsBean.setCount(goodsBean.getCount());
@@ -985,9 +1040,9 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         return listGoodsBeans;
     }
 
-    private List<QRExpenseParam.ListGoodsBean> dataToQRExpense(List<EMGoodsTo.GoodsBean> data) {
+    private List<QRExpenseParam.ListGoodsBean> dataToQRExpense(List<EMGoodsTo.RowsBean.GoodsBean> data) {
         List<QRExpenseParam.ListGoodsBean> listGoodsBeans = new ArrayList<>();
-        for (EMGoodsTo.GoodsBean goodsBean : data) {
+        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : data) {
             QRExpenseParam.ListGoodsBean listGoodsBean = new QRExpenseParam.ListGoodsBean();
             listGoodsBean.setGoodsNo(goodsBean.getGoodsNo());
             listGoodsBean.setCount(goodsBean.getCount());
@@ -997,20 +1052,72 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     }
 
     /**
+     * descirption: 新的USB打印机打印方法
+     */
+    public void Printing() {
+        /*if (isGainOpen) {
+            sendMsg(0);
+        } else {
+            ToastUtils.showShort("打印机未打开成功,正在尝试重新打开...");
+            gainschaUsbUtils.openConnect();
+            sendMsg(3000);
+        }*/
+    }
+
+    public void sendMsg(long time) {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                gainschaUsbUtils.sendReceipt(data, OnlineActivity.this);
+            }
+        }, time);
+    }
+
+    /**
      * descirption: 清空卡信息、列表对象 刷新
      */
     private void clear() {
         setPlate.clear();
         data.clear();
-        handler.sendEmptyMessage(1);
-        handler.sendEmptyMessage(3);
+        handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE);
+        online_pay_state_success.setVisibility(View.GONE);
+        online_pay_blance.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void showLoading() {
+
+    }
+
+    @Override
+    public void hideLoading() {
+
+    }
+
+    @Override
+    public void showMessage(@NonNull String message) {
+        checkNotNull(message);
+        ArmsUtils.snackbarText(message);
+    }
+
+    @Override
+    public void launchActivity(@NonNull Intent intent) {
+        checkNotNull(intent);
+        ArmsUtils.startActivity(intent);
+    }
+
+    @Override
+    public void killMyself() {
+        finish();
     }
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
+        singleExecutor.shutdown();
         handler.removeCallbacksAndMessages(null);
         SerialPortApi.getInstance().removeResponse();
-        super.onDestroy();
+        MainApplication.getSerialPortUtils().setOnDataReceiveListenerNull();
         if (data != null) {
             data.clear();
         }
@@ -1020,44 +1127,50 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
         if (menu_data != null) {
             menu_data.clear();
         }
-        if (threadPool != null) {
+        /*if (threadPool != null) {
             threadPool.stopThreadPool();
             threadPool = null;
+        }*/
+        if (gainschaUsbUtils != null) {
+            gainschaUsbUtils.closeConnect();
+            gainschaUsbUtils.release();
         }
         if (scanner != null) {
             scanner.clearScan();
+            scanner = null;
         }
         if (usbHelper != null) {
             usbHelper.close();
+            usbHelper = null;
         }
         clearMytime();
     }
 
-    private ThreadPool threadPool;
+   /*private ThreadPool threadPool;
 
-    //打印小票
+   //打印小票
     public void Printing() {
         Log.e(TAG, "onActivityResult: 开始连接打印机");
         //串口连接
-        /* 获取波特率 */
+        *//* 获取波特率 *//*
         int baudrate = 9600;
-        /* 获取串口号 */
+        *//* 获取串口号 *//*
         String path = "/dev/ttyS3";
 
         Log.e(TAG, "onViewClicked: baudrate:" + baudrate + "  path:" + path);
         if (baudrate != 0 && !TextUtils.isEmpty(path)) {
-            /* 初始化DeviceConnFactoryManager */
+            *//* 初始化DeviceConnFactoryManager *//*
             new DeviceConnFactoryManager.Build()
-                    /* 设置连接方式 */
+                    *//* 设置连接方式 *//*
                     .setConnMethod(DeviceConnFactoryManager.CONN_METHOD.SERIAL_PORT)
                     .setContext(OnlineActivity.this)
                     .setId(id)
-                    /* 设置波特率 */
+                    *//* 设置波特率 *//*
                     .setBaudrate(baudrate)
-                    /* 设置串口号 */
+                    *//* 设置串口号 *//*
                     .setSerialPort(path)
                     .build();
-            /* 打开端口 */
+            *//* 打开端口 *//*
             DeviceConnFactoryManager.getDeviceConnFactoryManagers()[id].openPort();
         }
         threadPool = ThreadPool.getInstantiation();
@@ -1074,9 +1187,9 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
     }
 
     private static final int CONN_PRINTER = 0x12;
-    /**
+    *//**
      * 使用打印机指令错误
-     */
+     *//*
     private static final int PRINTER_COMMAND_ERROR = 0x008;
     private static int id = 0;
 
@@ -1100,6 +1213,6 @@ public class OnlineActivity extends BaseActivity<OnlinePresenter> implements Onl
                     break;
             }
         }
-    };
+    };*/
 
 }

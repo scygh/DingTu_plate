@@ -19,7 +19,7 @@ public class PrintingTicketsUtil {
     /**
      * 发送票据
      */
-    public static void sendReceiptWithResponse(Context context, List<EMGoodsTo.GoodsBean> goodsBeanList, int id, double Balance) {
+    public static void sendReceiptWithResponse(Context context, List<EMGoodsTo.RowsBean.GoodsBean> goodsBeanList, int id, double Balance) {
         String pName = SpUtils.get(context, AppConstant.Receipt.NAME, "").toString();
         String pAddress = SpUtils.get(context, AppConstant.Receipt.ADDRESS, "").toString();
         String phone = SpUtils.get(context, AppConstant.Receipt.PHONE, "").toString();
@@ -63,7 +63,7 @@ public class PrintingTicketsUtil {
 
         int c = 0;
         Double p = 0.0;
-        for (EMGoodsTo.GoodsBean goodsBean : goodsBeanList) {
+        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : goodsBeanList) {
             String name = goodsBean.getGoodsName();
             String count = goodsBean.getCount() + "";
             for (int i = 0; i < 15 - name.length(); i++) {

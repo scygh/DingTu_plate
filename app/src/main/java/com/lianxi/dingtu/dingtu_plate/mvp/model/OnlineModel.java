@@ -60,7 +60,7 @@ public class OnlineModel extends BaseModel implements OnlineContract.Model {
         this.mApplication = null;
     }
     @Override
-    public Observable<BaseResponse<EMGoodsTo.GoodsBean>> getEMGoodsByNum(int num) {
+    public Observable<BaseResponse<EMGoodsTo.RowsBean.GoodsBean>> getEMGoodsByNum(int num) {
         return mRepositoryManager.obtainRetrofitService(UserService.class).getEMGoodsByNum(num);
     }
 

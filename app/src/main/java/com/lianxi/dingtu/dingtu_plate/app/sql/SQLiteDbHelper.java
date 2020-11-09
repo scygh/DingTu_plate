@@ -32,12 +32,12 @@ public class SQLiteDbHelper extends SQLiteOpenHelper {
             + Sql_EMGoods.KEY_PRICE + " REAL not null,"
             + Sql_EMGoods.KEY_DESCRIPTION + " VARCHAR(256) "
             + ");";
-    private static final String STUDENTS_CREATE_TABLE_GOODSBEAN_SQL = "create table " + EMGoodsTo.GoodsBean.TABLE_NAME + "("
-            + EMGoodsTo.GoodsBean.KEY_TIME + " VARCHAR(20) not null,"
-            + EMGoodsTo.GoodsBean.KEY_GOODSNO + " INTEGER not null,"
-            + EMGoodsTo.GoodsBean.KEY_GOODSNAME + " VARCHAR(256) not null,"
-            + EMGoodsTo.GoodsBean.KEY_PRICE + " REAL not null,"
-            + EMGoodsTo.GoodsBean.KEY_COUNT + " INTEGER not null"
+    private static final String STUDENTS_CREATE_TABLE_GOODSBEAN_SQL = "create table " + EMGoodsTo.RowsBean.GoodsBean.TABLE_NAME + "("
+            + EMGoodsTo.RowsBean.GoodsBean.KEY_TIME + " VARCHAR(20) not null,"
+            + EMGoodsTo.RowsBean.GoodsBean.KEY_GOODSNO + " INTEGER not null,"
+            + EMGoodsTo.RowsBean.GoodsBean.KEY_GOODSNAME + " VARCHAR(256) not null,"
+            + EMGoodsTo.RowsBean.GoodsBean.KEY_PRICE + " REAL not null,"
+            + EMGoodsTo.RowsBean.GoodsBean.KEY_COUNT + " INTEGER not null"
             + ");";
 
     public SQLiteDbHelper(Context context) {

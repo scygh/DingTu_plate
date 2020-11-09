@@ -54,23 +54,23 @@ public class EMGoodsRepo {
         db.close();
         return list;
     }
-    public ArrayList<EMGoodsTo.GoodsBean> getEMGoodsListByNum(int num){
+    public ArrayList<EMGoodsTo.RowsBean.GoodsBean> getEMGoodsListByNum(int num){
         SQLiteDatabase db=dbHelper.getReadableDatabase();
         String selectQuery="SELECT * FROM "+ Sql_EMGoods.TABLE_NAME+
                 " WHERE "+
-                EMGoodsTo.GoodsBean.KEY_GOODSNO + "=?";
+                EMGoodsTo.RowsBean.GoodsBean.KEY_GOODSNO + "=?";
 
-        ArrayList<EMGoodsTo.GoodsBean> list = new ArrayList<>();
+        ArrayList<EMGoodsTo.RowsBean.GoodsBean> list = new ArrayList<>();
         Cursor cursor = db.rawQuery(selectQuery, new String[]{String.valueOf(num)});
 
         if (cursor.moveToFirst()) {
             do {
-                EMGoodsTo.GoodsBean goodsBean = new EMGoodsTo.GoodsBean();
-                goodsBean.setGoodsNo(cursor.getInt(cursor.getColumnIndex(EMGoodsTo.GoodsBean.KEY_GOODSNO)));
-                goodsBean.setGoodsName(cursor.getString(cursor.getColumnIndex(EMGoodsTo.GoodsBean.KEY_GOODSNAME)));
-                goodsBean.setPrice(cursor.getDouble(cursor.getColumnIndex(EMGoodsTo.GoodsBean.KEY_PRICE)));
-                goodsBean.setCount(cursor.getInt(cursor.getColumnIndex(EMGoodsTo.GoodsBean.KEY_COUNT)));
-                goodsBean.setTime(cursor.getString(cursor.getColumnIndex(EMGoodsTo.GoodsBean.KEY_TIME)));
+                EMGoodsTo.RowsBean.GoodsBean goodsBean = new EMGoodsTo.RowsBean.GoodsBean();
+                goodsBean.setGoodsNo(cursor.getInt(cursor.getColumnIndex(EMGoodsTo.RowsBean.GoodsBean.KEY_GOODSNO)));
+                goodsBean.setGoodsName(cursor.getString(cursor.getColumnIndex(EMGoodsTo.RowsBean.GoodsBean.KEY_GOODSNAME)));
+                goodsBean.setPrice(cursor.getDouble(cursor.getColumnIndex(EMGoodsTo.RowsBean.GoodsBean.KEY_PRICE)));
+                goodsBean.setCount(cursor.getInt(cursor.getColumnIndex(EMGoodsTo.RowsBean.GoodsBean.KEY_COUNT)));
+                goodsBean.setTime(cursor.getString(cursor.getColumnIndex(EMGoodsTo.RowsBean.GoodsBean.KEY_TIME)));
                 list.add(goodsBean);
             } while (cursor.moveToNext());
         }

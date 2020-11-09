@@ -83,9 +83,9 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
         mModel.getEMGoodsByNum(num)
                 .observeOn(Schedulers.io())
                 .compose(RxLifecycleUtils.bindToLifecycle(mRootView))
-                .subscribe(new ErrorHandleSubscriber<BaseResponse<EMGoodsTo.GoodsBean>>(mErrorHandler) {
+                .subscribe(new ErrorHandleSubscriber<BaseResponse<EMGoodsTo.RowsBean.GoodsBean>>(mErrorHandler) {
                     @Override
-                    public void onNext(BaseResponse<EMGoodsTo.GoodsBean> listBaseResponse) {
+                    public void onNext(BaseResponse<EMGoodsTo.RowsBean.GoodsBean> listBaseResponse) {
                         if (listBaseResponse.isSuccess()){
                             mRootView.getEMGoodsByNum(listBaseResponse.getContent());
                         }else {
@@ -169,7 +169,6 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                     public void onError(Throwable t) {
                         mRootView.hideLoading();
                         mRootView.onPayFailure();
-
                     }
                 });
     }
@@ -208,7 +207,6 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                     public void onError(Throwable t) {
                         mRootView.hideLoading();
                         mRootView.onPayFailure();
-
                     }
                 });
     }

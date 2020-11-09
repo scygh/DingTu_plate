@@ -51,7 +51,7 @@ public class WritePlateModel extends BaseModel implements WritePlateContract.Mod
     }
 
     @Override
-    public Observable<BaseResponse<List<EMGoodsTo>>> onEmGoodsTo(int index, int pagesize, String type) {
+    public Observable<BaseResponse<EMGoodsTo>> onEmGoodsTo(int index, int pagesize, String type) {
         return mRepositoryManager.obtainRetrofitService(UserService.class).getEMGoodsDetail(index,pagesize,type);
     }
 

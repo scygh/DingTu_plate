@@ -13,6 +13,7 @@ public class EMGoodsTypeTo {
 
     private String Id;
     private String Name;
+    private int Order;
     private Object ParentId;
     private String Description;
     private int State;
@@ -32,6 +33,14 @@ public class EMGoodsTypeTo {
 
     public void setName(String Name) {
         this.Name = Name;
+    }
+
+    public int getOrder() {
+        return Order;
+    }
+
+    public void setOrder(int order) {
+        Order = order;
     }
 
     public Object getParentId() {

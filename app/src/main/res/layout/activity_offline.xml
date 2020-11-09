@@ -4,10 +4,11 @@
     android:id="@+id/offline_drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
     <RelativeLayout
         android:id="@+id/offline_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -164,6 +165,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="20dp"
@@ -175,12 +177,13 @@
                         android:layout_marginLeft="16dp"
                         android:layout_weight="3"
                         android:text="订单信息" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="2"
-                        android:text="支付状态"
-                        />
+                        android:text="支付状态" />
+
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
@@ -192,10 +195,9 @@
                         android:id="@+id/tv_pay_operation"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:paddingLeft="8dp"
                         android:layout_weight="2"
-                        android:text="支付操作"
-                        />
+                        android:paddingLeft="8dp"
+                        android:text="支付操作" />
 
 
                 </LinearLayout>
@@ -288,10 +290,12 @@
                         android:layout_weight="2"
                         android:background="@drawable/progress_bg"
                         android:orientation="vertical">
+
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_weight="1">
+
                             <TextView
                                 android:id="@+id/offline_pay_state_wait"
                                 android:layout_width="match_parent"
@@ -299,35 +303,37 @@
                                 android:layout_weight="1"
                                 android:gravity="center"
                                 android:text="等待支付"
-                                android:textSize="38sp"
-                                />
+                                android:textSize="38sp" />
+
                             <TextView
                                 android:id="@+id/offline_pay_state_success"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:layout_weight="1"
                                 android:gravity="center"
-                                android:textColor="@color/GREEN"
                                 android:text="支付成功"
+                                android:textColor="@color/GREEN"
                                 android:textSize="38sp" />
+
                             <TextView
                                 android:id="@+id/offline_pay_state_fail"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:layout_weight="1"
                                 android:gravity="center"
-                                android:textColor="@color/RED"
                                 android:text="支付失败"
+                                android:textColor="@color/RED"
                                 android:textSize="38sp" />
                         </RelativeLayout>
+
                         <TextView
                             android:id="@+id/offline_pay_blance"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:textColor="@color/BLACK"
                             android:text="余额"
+                            android:textColor="@color/BLACK"
                             android:textSize="38sp" />
                     </LinearLayout>
 
@@ -383,7 +389,7 @@
                                 android:layout_margin="8dp"
                                 android:layout_weight="1"
                                 android:background="@color/GREEN"
-                                android:text="打印"
+                                android:text="初始化打印"
                                 android:textColor="@color/WHITE"
                                 android:textSize="28sp"
                                 android:visibility="gone" />
@@ -411,6 +417,7 @@
                         android:layout_weight="2"
                         android:background="@drawable/progress_bg"
                         android:orientation="vertical">
+
                         <Button
                             android:id="@+id/offline_pay_btn"
                             android:layout_width="match_parent"
@@ -433,16 +440,16 @@
     <RelativeLayout
         android:id="@+id/offline_right"
         android:layout_width="400dp"
-        android:padding="8dp"
         android:layout_height="match_parent"
+        android:layout_gravity="right"
         android:background="@color/GREEN"
-        android:layout_gravity="right" >
+        android:padding="8dp">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/offline_recy_menu"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:listitem="@layout/item_menu"/>
+            tools:listitem="@layout/item_menu" />
 
     </RelativeLayout>
 </android.support.v4.widget.DrawerLayout>

@@ -33,6 +33,7 @@ import com.jess.arms.di.component.AppComponent;
 import com.jess.arms.utils.ArmsUtils;
 
 import com.lianxi.dingtu.dingtu_plate.app.Utils.AudioUtils;
+import com.lianxi.dingtu.dingtu_plate.app.Utils.GainschaUsbUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.DeviceConnFactoryManager;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrinterCommand;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.PrintingTicketsUtil;
@@ -40,6 +41,7 @@ import com.lianxi.dingtu.dingtu_plate.app.Utils.Printer.ThreadPool;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.SpUtils;
 import com.lianxi.dingtu.dingtu_plate.app.Utils.USBHelper;
 import com.lianxi.dingtu.dingtu_plate.app.api.AppConstant;
+import com.lianxi.dingtu.dingtu_plate.app.base.MainApplication;
 import com.lianxi.dingtu.dingtu_plate.app.entity.CardInfoBean;
 import com.lianxi.dingtu.dingtu_plate.app.entity.EMGoodsTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.GetFacePayAuthInfoParam;
@@ -72,6 +74,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android_serialport_api.SerialPortApi;
 import butterknife.BindView;
@@ -126,7 +130,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     TextView tv_pay_operation;
     @BindView(R.id.offline_pay_btn)
     Button paybutton;
-    private List<EMGoodsTo.GoodsBean> data = new ArrayList<>();
+    private List<EMGoodsTo.RowsBean.GoodsBean> data = new ArrayList<>();
     private List<String> menu_data = new ArrayList<>();
     private PayGoodsAdapter adapter;
     private MenuAdapter menuAdapter;
@@ -137,19 +141,27 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     private int number = 0;//卡内码
     private String code = "";//单位代码
     private boolean isAutopay;
+    private double Balance = 0.0;
+
+    private static final int UPDATE_MAIN_LISTADNPRICE = 1;
+    private static final int UPDATE_MENU_DATA = 2;
+    private static final int ISHAVINGCARD = 4;
+    private static final int INIT_READCARD_PAY = 5;
+    private static final int PAY_SUCCESS = 6;
+    private static final int PAYBUTTON_ENABLE = 7;
 
     @SuppressLint("HandlerLeak")
     Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case 1:
+                case UPDATE_MAIN_LISTADNPRICE:
                     if (adapter != null) {
                         Log.e(TAG, "handleMessage: 更新");
                         adapter.notifyDataSetChanged();
                         int count = 0;
                         double price = 0.0;
-                        for (EMGoodsTo.GoodsBean goods : data) {
+                        for (EMGoodsTo.RowsBean.GoodsBean goods : data) {
                             count = count + goods.getCount();
                             price = price + goods.getPrice() * goods.getCount();
                         }
@@ -157,32 +169,37 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                         goods_num.setText(count + "");
                         if (isAutopay) {
                             waitStatus();
+                        } else {
+                            clearStatus();
                         }
                     }
                     break;
-                case 2:
+                case UPDATE_MENU_DATA:
                     if (menuAdapter != null) {
                         menu_data.clear();
                         menu_data.addAll(menuRepo.getGoodsBeanListAllTime());
                         menuAdapter.notifyDataSetChanged();
                     }
                     break;
-                case 3:
-                    offline_pay_state_success.setVisibility(View.GONE);
-                    offline_pay_blance.setVisibility(View.GONE);
-                    break;
-                case 4:
+                case ISHAVINGCARD:
                     if (havingCard) {
-                        handler.sendEmptyMessageDelayed(4, 500);
+                        handler.sendEmptyMessageDelayed(ISHAVINGCARD, 500);
                     } else {
                         clear();
+                        if (isAutopay) {
+                            openReadCard();
+                        }
                     }
                     break;
-                case 5:
-                    initCardPay();
+                case INIT_READCARD_PAY:
+                    usbHelper.notBreakRead();
+                    initReadCardPay();
                     break;
-                case 6:
+                case PAY_SUCCESS:
                     clearMytime();
+                    paybutton.setEnabled(true);
+                    break;
+                case PAYBUTTON_ENABLE:
                     paybutton.setEnabled(true);
                     break;
             }
@@ -201,6 +218,10 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     private boolean isPrint;
     private EMGoodsPayDetailRepo emGoodsPayDetailRepo = new EMGoodsPayDetailRepo(OfflineActivity.this);
     private MyTime myTime;
+    private GainschaUsbUtils gainschaUsbUtils;
+    private boolean isGainOpen = false;
+    private ExecutorService singleExecutor;
+    CardInfoBean cardInfoBean;
 
     class MyTime extends CountDownTimer {
         public MyTime(long millisInFuture, long countDownInterval) {
@@ -215,7 +236,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         @Override
         public void onFinish() {
             handler.sendEmptyMessage(6);
-            waitClear();
+            clearStatus();
             handler.removeMessages(5);//防止重复点击按钮
         }
     }
@@ -266,7 +287,48 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         menuAdapter = new MenuAdapter(R.layout.item_menu, menu_data);
         offline_recy_menu.setAdapter(menuAdapter);
 
-        waitClear();
+        clearStatus();
+
+        singleExecutor = Executors.newSingleThreadExecutor();
+
+       /* gainschaUsbUtils = new GainschaUsbUtils(getApplicationContext());
+        gainschaUsbUtils.setOnGainSchaUsbListener(new GainschaUsbUtils.OnGainSchaUsbListener() {
+            @Override
+            public void onConnect(String deviceConnect) {
+                Log.d("jiabou", "onConnect: " + deviceConnect);
+                if (deviceConnect.equals("已连接")) {
+                    isGainOpen = true;
+                    ToastUtils.showShort("打印机已连接");
+                    handler.sendEmptyMessage(7);
+                } else {
+                    isGainOpen = false;
+                }
+            }
+
+            @Override
+            public void onStatus(String deviceStatus) {
+
+            }
+
+            @Override
+            public void onCommandTypes(String deviceType) {
+
+            }
+        });
+        singleExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(3000);
+                    gainschaUsbUtils.openConnect();
+                    Log.d("deviceConnect", "onConnect: 1");
+                } catch (Exception e) {
+
+                }
+            }
+        });*/
+        //初始化音频
+        AudioUtils.getInstance().init(getApplicationContext());
 
         //开启自动支付
         usbHelper = USBHelper.getInstance(this);
@@ -274,7 +336,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
             pay_operation.setVisibility(View.GONE);
             tv_pay_operation.setVisibility(View.GONE);
             pattern = 2;
-            Pay();
+            openReadCard();
         } else {
             pay_operation.setVisibility(View.VISIBLE);
             tv_pay_operation.setVisibility(View.VISIBLE);
@@ -312,7 +374,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                 } else {
                     return;
                 }
-                EMGoodsTo.GoodsBean goodsBean = new EMGoodsTo.GoodsBean();
+                EMGoodsTo.RowsBean.GoodsBean goodsBean = new EMGoodsTo.RowsBean.GoodsBean();
                 goodsBean.setCount(1);
                 goodsBean.setPrice(info.getGoodsPrice());
                 goodsBean.setGoodsName(info.getGoodsPrice() + "元商品");
@@ -324,10 +386,10 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                     goodsBean.setCount(1);
                     data.add(goodsBean);
                 } else if (data.size() > 0) {
-                    List<EMGoodsTo.GoodsBean> goodsBeanList = new ArrayList<>();
+                    List<EMGoodsTo.RowsBean.GoodsBean> goodsBeanList = new ArrayList<>();
                     goodsBeanList.addAll(data);
                     data.clear();
-                    for (EMGoodsTo.GoodsBean goods : goodsBeanList) {
+                    for (EMGoodsTo.RowsBean.GoodsBean goods : goodsBeanList) {
                         if (goods.getGoodsNo() == goodsBean.getGoodsNo()) {
                             goods.setCount(goods.getCount() + 1);
                             i = 1;
@@ -370,7 +432,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                 switch (view.getId()) {
                     case R.id.item_btn_plus:
                         data.get(position).setCount(data.get(position).getCount() + 1);
-                        handler.sendEmptyMessage(1);
+                        handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE);
 
                         break;
                     case R.id.item_btn_reduce:
@@ -399,7 +461,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                             dialog.show();
                         } else {
                             data.get(position).setCount(data.get(position).getCount() - 1);
-                            handler.sendEmptyMessage(1);
+                            handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE);
                         }
                         break;
                 }
@@ -411,7 +473,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                 menu_time = menu_data.get(position);
                 data.clear();
                 data.addAll(menuRepo.getGoodsBeanListByTime(menu_data.get(position)));
-                handler.sendEmptyMessage(1);
+                handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE);
                 offline_drawerLayout.closeDrawer(offline_right);
             }
         });
@@ -429,7 +491,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                                     if (menu_data.size() > 0) {
                                         menuRepo.delete(menu_data.get(position));
                                     }
-                                    handler.sendEmptyMessageDelayed(2, 500);
+                                    handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
                                 }
                             })
                             .setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -482,17 +544,13 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.offline_plusone_btn:
-                usbHelper.run();
-                usbHelper.AgreementClose();
-                Log.e(TAG, "onViewClicked: " + JSON.toJSONString(usbHelper.read_card()));
-
                 break;
             case R.id.offline_pay_btn:
                 paybutton.setEnabled(false);
                 myTime = new MyTime(60000, 1000);
                 myTime.start();
                 waitStatus();
-                Pay();
+                openReadCard();
                 break;
             case R.id.offline_clear_btn:
                 AlertDialog dialog = new AlertDialog.Builder(OfflineActivity.this)
@@ -503,7 +561,7 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 clear();
-                                waitClear();
+                                clearStatus();
                             }
                         })
                         .setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -520,14 +578,14 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
                         Date date = new Date(System.currentTimeMillis());
                         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         String time = simpleDateFormat.format(date);
-                        for (EMGoodsTo.GoodsBean goodsBean : data) {
+                        for (EMGoodsTo.RowsBean.GoodsBean goodsBean : data) {
                             goodsBean.setTime(time);
                             menuRepo.insert(goodsBean);
                         }
                         Toast.makeText(OfflineActivity.this, "已成功挂起订单：" + time, Toast.LENGTH_SHORT).show();
                         AudioUtils.getInstance().speakText("挂单成功");
-                        handler.sendEmptyMessageDelayed(2, 500);
-                        handler.sendEmptyMessage(4);
+                        handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
+                        handler.sendEmptyMessage(ISHAVINGCARD);
                     } else {
                         Toast.makeText(OfflineActivity.this, "商品列表为空！", Toast.LENGTH_SHORT).show();
                         AudioUtils.getInstance().speakText("商品列表为空");
@@ -540,63 +598,58 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
 
                 break;
             case R.id.offline_take_btn:
-                handler.sendEmptyMessageDelayed(2, 500);
+                handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
                 offline_drawerLayout.openDrawer(offline_right);
                 break;
         }
     }
 
-    private void waitClear() {
-        offline_pay_state_wait.setVisibility(View.GONE);
-        offline_pay_state_fail.setVisibility(View.GONE);
-        offline_pay_state_success.setVisibility(View.GONE);
-        offline_pay_blance.setVisibility(View.GONE);
+    /**
+    * descirption: 开启刷卡入口
+    */
+    private void openReadCard() {
+        handler.removeMessages(INIT_READCARD_PAY);//防止重复点击按钮
+        usbHelper.notBreakRead();
+        initReadCardPay();
     }
 
-    private void waitStatus() {
-        offline_pay_state_fail.setVisibility(View.GONE);
-        offline_pay_state_success.setVisibility(View.GONE);
-        offline_pay_blance.setVisibility(View.GONE);
-        offline_pay_state_wait.setVisibility(View.VISIBLE);
-    }
-
-    private void Pay() {
-        handler.removeMessages(5);//防止重复点击按钮
-        if (isAutopay) {
-            handler.sendEmptyMessageDelayed(5, 3000);
-        } else {
-            initCardPay();
-        }
-    }
-
-    private void initCardPay() {
-        mTotalPrice = Double.parseDouble(goods_price.getText().toString());
-        if (mTotalPrice > 0.00) {
-            CardInfoBean cardInfoBean = null;
-            cardInfoBean = usbHelper.read_card();
-            if (cardInfoBean != null) {
-                Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
-                if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片,或者错误则重新读卡
-                    handler.sendEmptyMessageDelayed(5, 500);
+    /**
+    * descirption: 开启刷卡
+    */
+    private void initReadCardPay() {
+        singleExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                mTotalPrice = Double.parseDouble(goods_price.getText().toString());
+                if (mTotalPrice <= 0.00) {//
+                    ToastUtils.showShort("请识别餐盘");
+                    handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 2000);
                     return;
                 }
-                usbHelper.PeakNoise();
-                if (cardInfoBean.getCash_account() > mTotalPrice) {
-                    goToOfflinePay(cardInfoBean);
+                cardInfoBean = usbHelper.read_card();
+                if (cardInfoBean != null) {
+                    Log.d("read_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
+                    if (cardInfoBean.getCash_account() == 3276.8 && cardInfoBean.getNum() == 327680 || cardInfoBean.getCode().equals("0000")) {//如果发现是这些数据表示没有放置卡片,或者错误则重新读卡
+                        handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 500);
+                        return;
+                    }
+                    usbHelper.PeakNoise();
+                    if (cardInfoBean.getCash_account() > mTotalPrice) {
+                        goToOfflinePay(cardInfoBean);
+                    } else {
+                        ToastUtils.showShort("余额不足，请充值");
+                        handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 2000);
+                    }
                 } else {
-                    ToastUtils.showShort("请充值");
-                    handler.sendEmptyMessageDelayed(5, 2000);
+                    ToastUtils.showShort("没读到卡，刷卡停止");
                 }
-            } else {
-                AudioUtils.getInstance().speakText("读卡失败，请重新刷卡");
-                handler.sendEmptyMessageDelayed(5, 2000);
             }
-        } else {
-            AudioUtils.getInstance().speakText("请识别餐盘");
-            handler.sendEmptyMessageDelayed(5, 2000);
-        }
+        });
     }
 
+    /**
+    * descirption: 去离线支付
+    */
     private void goToOfflinePay(CardInfoBean cardInfoBean) {
         Double cash = sub(cardInfoBean.getCash_account(), mTotalPrice);
         cardInfoBean.setCash_account(cash);
@@ -608,7 +661,6 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         Log.e(TAG, "findRFCardListening:支付 " + cash);
         Log.d("write_card5", "findRFCardListening: " + JSON.toJSONString(cardInfoBean));
         if (usbHelper.write_card5(cardInfoBean)) {
-            handler.sendEmptyMessage(4);
             Sql_EMGoodsPayDetail sql_emGoodsPayDetail = new Sql_EMGoodsPayDetail();
             sql_emGoodsPayDetail.setNumber(cardInfoBean.getNum());
             sql_emGoodsPayDetail.setDeviceid(deviceID);
@@ -618,42 +670,98 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
             sql_emGoodsPayDetail.setUploadsuccess(0);
             sql_emGoodsPayDetail.setPattern(pattern);
             emGoodsPayDetailRepo.insert(sql_emGoodsPayDetail);
-
             if (isPrint) Printing();
-            offline_pay_state_wait.setVisibility(View.GONE);
-            offline_pay_state_fail.setVisibility(View.GONE);
-            offline_pay_state_success.setVisibility(View.VISIBLE);
-            offline_pay_blance.setVisibility(View.VISIBLE);
+            successStatus();
             offline_pay_blance.setText("余额：" + cardInfoBean.getCash_account());
             Balance = cardInfoBean.getCash_account();
             if (menu_time != "") {
                 menuRepo.delete(menu_time);
-                handler.sendEmptyMessageDelayed(2, 500);
+                handler.sendEmptyMessageDelayed(UPDATE_MENU_DATA, 500);
             }
-            handler.sendEmptyMessage(4);
+            handler.sendEmptyMessageDelayed(ISHAVINGCARD, 3000);
             if (isAutopay) {
-                handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+                handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 5000);//继续开启刷卡
             }
             AudioUtils.getInstance().speakText("支付成功");
-            handler.sendEmptyMessageDelayed(6, 3000);
+            handler.sendEmptyMessageDelayed(PAY_SUCCESS, 3000);
         } else {
             if (isAutopay) {
-                handler.sendEmptyMessageDelayed(5, 5000);//继续开启刷卡
+                handler.sendEmptyMessageDelayed(INIT_READCARD_PAY, 5000);//继续开启刷卡
             }
             AudioUtils.getInstance().speakText("支付失败");
-            offline_pay_state_wait.setVisibility(View.GONE);
-            offline_pay_state_fail.setVisibility(View.VISIBLE);
-            offline_pay_state_success.setVisibility(View.GONE);
-            offline_pay_blance.setVisibility(View.GONE);
+            failStatus();
         }
+    }
+
+    /**
+     * descirption: 清空状态
+     */
+    private void clearStatus() {
+        offline_pay_state_wait.setVisibility(View.GONE);
+        offline_pay_state_fail.setVisibility(View.GONE);
+        offline_pay_state_success.setVisibility(View.GONE);
+        offline_pay_blance.setVisibility(View.GONE);
+    }
+
+    /**
+     * descirption: 等待支付状态
+     */
+    private void waitStatus() {
+        offline_pay_state_fail.setVisibility(View.GONE);
+        offline_pay_state_success.setVisibility(View.GONE);
+        offline_pay_blance.setVisibility(View.GONE);
+        offline_pay_state_wait.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * descirption: 支付成功状态
+     */
+    private void successStatus() {
+        offline_pay_state_wait.setVisibility(View.GONE);
+        offline_pay_state_fail.setVisibility(View.GONE);
+        offline_pay_state_success.setVisibility(View.VISIBLE);
+        offline_pay_blance.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * descirption: 支付失败状态
+     */
+    private void failStatus() {
+        offline_pay_state_wait.setVisibility(View.GONE);
+        offline_pay_state_fail.setVisibility(View.VISIBLE);
+        offline_pay_state_success.setVisibility(View.GONE);
+        offline_pay_blance.setVisibility(View.GONE);
+    }
+
+    /**
+     * descirption: 新的USB打印机打印方法
+     */
+    public void Printing() {
+        /*if (isGainOpen) {
+            sendMsg(0);
+        } else {
+            ToastUtils.showShort("打印机未打开成功,正在尝试重新打开...");
+            gainschaUsbUtils.openConnect();
+            sendMsg(3000);
+        }*/
+    }
+
+    public void sendMsg(long time) {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                gainschaUsbUtils.sendReceipt(data, OfflineActivity.this);
+            }
+        }, time);
     }
 
 
     private void clear() {
         setPlate.clear();
         data.clear();
-        handler.sendEmptyMessage(1);
-        handler.sendEmptyMessage(3);
+        handler.sendEmptyMessage(UPDATE_MAIN_LISTADNPRICE);
+        offline_pay_state_success.setVisibility(View.GONE);
+        offline_pay_blance.setVisibility(View.GONE);
     }
 
     @Override
@@ -683,35 +791,36 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
         finish();
     }
 
-    private ThreadPool threadPool;
+
+    /*private ThreadPool threadPool;
     //小票打印是否显示余额
-    private double Balance = 0.0;
+
 
     //打印小票
     public void Printing() {
         Log.e(TAG, "onActivityResult: 开始连接打印机");
         //串口连接
-        /* 获取波特率 */
+        *//* 获取波特率 *//*
         int baudrate = 9600;
 //        (int) SpUtils.get(OfflineActivity.this, AppConstant.Print.SERIALPORTBAUDRATE, 0);
-        /* 获取串口号 */
+        *//* 获取串口号 *//*
         String path = "/dev/ttyS3";
 //        (String) SpUtils.get(OfflineActivity.this, AppConstant.Print.SERIALPORTPATH, "");
 
         Log.e(TAG, "onViewClicked: baudrate:" + baudrate + "  path:" + path);
         if (baudrate != 0 && !TextUtils.isEmpty(path)) {
-            /* 初始化DeviceConnFactoryManager */
+            *//* 初始化DeviceConnFactoryManager *//*
             new DeviceConnFactoryManager.Build()
-                    /* 设置连接方式 */
+                    *//* 设置连接方式 *//*
                     .setConnMethod(DeviceConnFactoryManager.CONN_METHOD.SERIAL_PORT)
                     .setContext(OfflineActivity.this)
                     .setId(id)
-                    /* 设置波特率 */
+                    *//* 设置波特率 *//*
                     .setBaudrate(baudrate)
-                    /* 设置串口号 */
+                    *//* 设置串口号 *//*
                     .setSerialPort(path)
                     .build();
-            /* 打开端口 */
+            *//* 打开端口 *//*
             DeviceConnFactoryManager.getDeviceConnFactoryManagers()[id].openPort();
         }
         threadPool = ThreadPool.getInstantiation();
@@ -728,9 +837,11 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
     }
 
     private static final int CONN_PRINTER = 0x12;
+    */
+
     /**
      * 使用打印机指令错误
-     */
+     *//*
     private static final int PRINTER_COMMAND_ERROR = 0x008;
     private static int id = 0;
 
@@ -755,16 +866,31 @@ public class OfflineActivity extends BaseActivity<OfflinePresenter> implements O
             }
         }
     };
-
+*/
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (threadPool != null) {
+        /*if (threadPool != null) {
             threadPool.stopThreadPool();
             threadPool = null;
-        }
+        }*/
+        singleExecutor.shutdown();
         handler.removeCallbacksAndMessages(null);
         SerialPortApi.getInstance().removeResponse();
+        MainApplication.getSerialPortUtils().setOnDataReceiveListenerNull();
+        if (data != null) {
+            data.clear();
+        }
+        if (setPlate != null) {
+            setPlate.clear();
+        }
+        if (menu_data != null) {
+            menu_data.clear();
+        }
+        if (gainschaUsbUtils != null) {
+            gainschaUsbUtils.closeConnect();
+            gainschaUsbUtils.release();
+        }
         if (usbHelper != null) {
             usbHelper.close();
         }

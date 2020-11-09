@@ -22,7 +22,6 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.CardInfoBean;
 import com.lianxi.dingtu.dingtu_plate.app.listening.USBListening;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,7 +41,6 @@ import static com.lianxi.dingtu.dingtu_plate.app.Utils.ByteUtils.intToByte3;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.ByteUtils.str2Bcd;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.ByteUtils.ubyteTo2Bytes;
 import static com.lianxi.dingtu.dingtu_plate.app.Utils.ByteUtils.ubyteToBytes;
-import static com.lianxi.dingtu.dingtu_plate.app.Utils.ByteUtils.unsignedShortToByte2;
 
 /**
  * Created by YuanYe on 18/6/21.
@@ -285,10 +283,9 @@ public class USBHelper {
     }
 
     /**
-     * 关闭循环，关闭USB连接，释放资源
+     * 关闭USB连接，释放资源
      */
     public void close() {
-        close_read();
         if (mDeviceConnection != null) { //关闭USB设备
             mDeviceConnection.close();
             mDeviceConnection = null;
@@ -297,6 +294,16 @@ public class USBHelper {
             context.unregisterReceiver(broadcastReceiver);
         }
         instance = null;
+    }
+
+    private boolean breadRead = false;
+
+    public void breakRead() {
+        breadRead = true;
+    }
+
+    public void notBreakRead() {
+        breadRead = false;
     }
 
     /**
@@ -322,10 +329,12 @@ public class USBHelper {
         do {
             Receiveytes = null;
             Receiveytes = new byte[64];
+            if (breadRead == true) break;
             ret = mDeviceConnection.bulkTransfer(epBulkIn, Receiveytes,
                     Receiveytes.length, 1000);
             Log.e("USBReceivedData", "循环读四区块 取到的数据: " + bytesToHexString(Receiveytes));
         } while (Receiveytes[0] != 0x05 || Receiveytes[1] != 0x06 || Receiveytes[2] != 0x04);
+        Log.d("weizhi", "read_card: 1");
         if (ret == 64) {
             String num = bytesToHexString(Receiveytes).substring(8, 14);
             cardInfoBean.setNum(Integer.parseInt(num, 16)); //卡内码
@@ -335,9 +344,6 @@ public class USBHelper {
             String level_type = bytesToHexString(Receiveytes).substring(38, 40);
             cardInfoBean.setType(Integer.parseInt(level_type.substring(1), 16));//卡片类型
             cardInfoBean.setLevel(Integer.parseInt(level_type.substring(0, 1), 16));//补贴级别
-        } else {
-            Log.d("CaptureListening", "读4扇区失败");
-            mDeviceConnection.close();
         }
 
         byte[] bt5 = new byte[]{
@@ -353,10 +359,12 @@ public class USBHelper {
         do {
             Receiveytes = null;
             Receiveytes = new byte[64];
+            if (breadRead == true) break;
             ret = mDeviceConnection.bulkTransfer(epBulkIn, Receiveytes,
                     Receiveytes.length, 1000);
             Log.e("USBReceivedData", "循环读五区块 取到的数据: " + bytesToHexString(Receiveytes));
         } while (Receiveytes[0] != 0x05 || Receiveytes[1] != 0x06 || Receiveytes[2] != 0x04);
+        Log.d("weizhi", "read_card: 2");
         if (ret == 64) {
             String cash_account = bytesToHexString(Receiveytes).substring(8, 14);
             int int_cash_account = Integer.parseInt(cash_account, 16);
@@ -379,10 +387,6 @@ public class USBHelper {
             String spending_time = bytesToHexString(Receiveytes).substring(24, 30);
             spending_time = "20" + spending_time;
             cardInfoBean.setSpending_time(spending_time);//消费时间
-
-        } else {
-            Log.e("CaptureListening", "读5扇区失败");
-            mDeviceConnection.close();
         }
 
 
@@ -399,10 +403,12 @@ public class USBHelper {
         do {
             Receiveytes = null;
             Receiveytes = new byte[64];
+            if (breadRead == true) break;
             ret = mDeviceConnection.bulkTransfer(epBulkIn, Receiveytes,
                     Receiveytes.length, 1000);
             Log.e("USBReceivedData", "循环读六区块 取到的数据 " + bytesToHexString(Receiveytes));
         } while (Receiveytes[0] != 0x05 || Receiveytes[1] != 0x06 || Receiveytes[2] != 0x04);
+        Log.d("weizhi", "read_card: 3");
         if (ret == 64) {
             String spending_limit = bytesToHexString(Receiveytes).substring(8, 14);
             cardInfoBean.setSpending_limit(Integer.parseInt(spending_limit, 16) / 100);//消费限额
@@ -421,10 +427,8 @@ public class USBHelper {
             cardInfoBean.setIsDiscount(b);//是否打折
             String discount = bytesToHexString(Receiveytes).substring(30, 32);
             cardInfoBean.setDiscount(Integer.parseInt(discount, 16));//折扣率
-        } else {
-            Log.e("CaptureListening", "x06读取失败");
-            mDeviceConnection.close();
         }
+        if (breadRead) return null;
         return cardInfoBean;
     }
 

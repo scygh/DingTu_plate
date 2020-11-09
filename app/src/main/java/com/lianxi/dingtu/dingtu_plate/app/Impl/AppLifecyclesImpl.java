@@ -112,8 +112,6 @@ public class AppLifecyclesImpl implements AppLifecycles {
 
         LoadingDialog.initStyle(s);
 
-        AudioUtils.getInstance().init(application);
-
 //        UMConfigure.init(Context context, String appkey, String channel, int deviceType, String pushSecret);
         RetrofitUrlManager.getInstance().putDomain(BAIDU_DOMAIN_NAME, BAIDU_DOMAIN);
         RetrofitUrlManager.getInstance().putDomain(EASYDL_DOMNAIN_NAME, EASYDL_DOMNAIN);

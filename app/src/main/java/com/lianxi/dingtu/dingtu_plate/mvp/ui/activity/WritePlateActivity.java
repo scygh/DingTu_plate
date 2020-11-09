@@ -91,7 +91,7 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
     List<String> uidList = new ArrayList<>();
     PlateUidRvAdapter adapter;
     List<String> EMGoodsTypeToNameList = new ArrayList<>();
-    List<List<EMGoodsTo>> EMGoodsTolist = new ArrayList<>();
+    List<List<EMGoodsTo.RowsBean>> EMGoodsTolist = new ArrayList<>();
     MyExtendableListViewAdapter lvadapter;
     List<EMGoodsTypeTo> myemGoodsTypeTo;
     private int pattern = 3;
@@ -119,30 +119,30 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         }
         myemGoodsTypeTo = emGoodsTypeTo;
         for (int i = 0; i < emGoodsTypeTo.size(); i++) {
-            EMGoodsTolist.add(new ArrayList<>());//初始化要更新的容器，不然会造成数组越界
+            EMGoodsTolist.add(new ArrayList<>());//初始化要更新的容器，不然会造成数组越界//放详细菜的列表的列表
             EMGoodsTypeToNameList.add(emGoodsTypeTo.get(i).getName());
             mPresenter.getEMGoods(emGoodsTypeTo.get(i).getId());
         }
     }
 
     @Override
-    public void onEmGoodsTo(List<EMGoodsTo> emGoodsTo) {
-        //进行判断后再放入指定的位置，抱着有序
-        if (emGoodsTo.size() > 0) {
+    public void onEmGoodsTo(EMGoodsTo emGoodsTo) {
+        //进行判断后再放入指定的位置，保证有序
+        if (emGoodsTo.getRows().size() > 0) {
             for (int j = 0; j < myemGoodsTypeTo.size(); j++) {
-                if (myemGoodsTypeTo.get(j).getId().equals(emGoodsTo.get(0).getGoods().getGoodsType())) {
-                    EMGoodsTolist.set(j, emGoodsTo);
+                if (myemGoodsTypeTo.get(j).getId().equals(emGoodsTo.getRows().get(0).getGoods().getGoodsType())) {
+                    EMGoodsTolist.set(j, emGoodsTo.getRows());
                     break;
                 }
             }
         }
         if (EMGoodsTolist.size() == EMGoodsTypeToNameList.size()) {
-            List<EMGoodsTo[]> emGoodsTos = new ArrayList<>();
+            List<EMGoodsTo.RowsBean[]> emGoodsTos = new ArrayList<>();
             for (int i = 0; i < EMGoodsTolist.size(); i++) {
-                emGoodsTos.add(EMGoodsTolist.get(i).toArray(new EMGoodsTo[EMGoodsTolist.get(i).size()]));
+                emGoodsTos.add(EMGoodsTolist.get(i).toArray(new EMGoodsTo.RowsBean[EMGoodsTolist.get(i).size()]));
             }
             progressBar.setVisibility(View.GONE);
-            lvadapter = new MyExtendableListViewAdapter(this, EMGoodsTypeToNameList.toArray(new String[EMGoodsTypeToNameList.size()]), emGoodsTos.toArray(new EMGoodsTo[emGoodsTos.size()][]));
+            lvadapter = new MyExtendableListViewAdapter(this, EMGoodsTypeToNameList.toArray(new String[EMGoodsTypeToNameList.size()]), emGoodsTos.toArray(new EMGoodsTo.RowsBean[emGoodsTos.size()][]));
             goodsListView.setAdapter(lvadapter);
             goodsListView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
                 @Override
@@ -157,7 +157,7 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
                     goodsNum.setText(EMGoodsTolist.get(groupPosition).get(childPosition).getGoods().getGoodsNo() + "");
                     goodsPrice.setText(EMGoodsTolist.get(groupPosition).get(childPosition).getGoods().getPrice() + "");
                     if (pattern == 2) {
-                        writePlate();
+                        openSingleReadPattern();
                     }
                     return true;
                 }
@@ -189,15 +189,34 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
     public void initData(@Nullable Bundle savedInstanceState) {
         this.setTitle("商品写盘");
         progressBar.setVisibility(View.VISIBLE);
+        //初始化音频
+        AudioUtils.getInstance().init(getApplicationContext());
         SerialPortApi.initPort();
         SerialPortApi.getInstance().setResponse(new SerialPortApi.SerialPortResponse() {
             @Override
             public void onGetUpTo(String card, PlateCardInfo info) {
                 //ToastUtils.showShort(card);
-                uidSet.add(card);
-                uidList.clear();
-                uidList.addAll(uidSet);
-                handler.sendEmptyMessage(1);
+                if (pattern == 1) {//如果是清盘模式，读到就去清盘
+                    if (info.getGoodsNum() != null) {
+                        SerialPortApi.gotoClearCardPattern(0);
+                    } else {
+                        updateList(card);
+                    }
+                } else if (pattern == 2) {//如果是写卡模式，读到就去写盘
+                    if (info.getGoodsNum() != null) {
+                        writePlate();
+                    } else {
+                        updateList(card);
+                    }
+                } else if (pattern == 3) {//如果是读盘模式，读到就去刷新列表
+                    updateList(card);
+                } else if (pattern == 0) {
+                    if (card.equalsIgnoreCase("HAVECARD")) {
+                        SerialPortApi.gotoClearCardPattern(0);
+                    } else {
+                        updateList(card);
+                    }
+                }
             }
 
             @Override
@@ -216,19 +235,34 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
                 } else {
                     ToastUtils.showShort(msg);
                 }
-                if (msg.equals(SerialPortApi.HINT_PX_PATTERN_OK)) {
-                    SerialPortApi.gotoReadCardPattern();
+                if (msg.equals(SerialPortApi.HINT_SINGLE_RESPONSE_PATTERN_OK)) {
+                    if (pattern == 0) {
+                        SerialPortApi.gotoReadCardUIDPattern();
+                    } else {
+                        SerialPortApi.gotoReadCardPattern();
+                    }
                 } else if (msg.equals(SerialPortApi.HINI_READCARD_PATTERN_OK)) {
                     SerialPortApi.openRF_field();
-                } else if (msg.equals(SerialPortApi.HINT_OPENRF_FIELD_OK)) {
+                } else if (msg.equals(SerialPortApi.HINI_READCARDUID_PATTERN_OK)) {
+                    SerialPortApi.openRF_field();
+                }else if (msg.equals(SerialPortApi.HINT_OPENRF_FIELD_OK)) {
                     ToastUtils.showShort("请放置餐盘");
                 }
             }
         });
-        openReadPattern();
         mPresenter.getEmGoodsTypeTo("1");
     }
 
+    public void updateList(String card) {
+        uidSet.add(card);
+        uidList.clear();
+        uidList.addAll(uidSet);
+        handler.sendEmptyMessage(1);
+    }
+
+    /**
+     * descirption: 初始化清空 开启盘询模式
+     */
     private void openReadPattern() {
         SerialPortApi.clearSb();
         SerialPortApi.closeRF_field();
@@ -236,6 +270,20 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
             @Override
             public void run() {
                 SerialPortApi.PxPattern();
+            }
+        }, 200);
+    }
+
+    /**
+     * descirption: 初始化清空 开启单次读模式
+     */
+    private void openSingleReadPattern() {
+        SerialPortApi.clearSb();
+        SerialPortApi.closeRF_field();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                SerialPortApi.singleResponsePattern();
             }
         }, 200);
     }
@@ -298,14 +346,19 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
     }
 
 
-    @OnClick({R.id.clear, R.id.write, R.id.clear_list, R.id.read, R.id.back_iv})
+    @OnClick({R.id.initCard, R.id.clear, R.id.write, R.id.clear_list, R.id.read, R.id.back_iv})
     public void onViewClicked(View view) {
         switch (view.getId()) {
+            case R.id.initCard:
+                pattern = 0;
+                clearList();
+                openSingleReadPattern();
+                break;
             case R.id.clear:
                 pattern = 1;
                 clearList();
-                SerialPortApi.gotoClearCardPattern(0);
                 changeStyle("clear");
+                openSingleReadPattern();
                 break;
             case R.id.clear_list:
                 clearList();
@@ -314,13 +367,13 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
                 pattern = 2;
                 clearList();
                 changeStyle("write");
-                writePlate();
+                openSingleReadPattern();
                 break;
             case R.id.read:
                 pattern = 3;
                 clearList();
                 changeStyle("read");
-                openReadPattern();
+                openSingleReadPattern();
                 break;
             case R.id.back_iv:
                 finish();

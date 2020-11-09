@@ -21,6 +21,8 @@ public class SerialPortUtils {
     public InputStream inputStream = null;
     public OutputStream outputStream = null;
     public ChangeTool changeTool = new ChangeTool();
+    public OnDataReceiveListener onDataReceiveListener = null;
+
 
 
     /**
@@ -127,6 +129,7 @@ public class SerialPortUtils {
                         if (onDataReceiveListener != null) {
                             onDataReceiveListener.onDataReceive(changeTool.ByteArrToHex(buffer,0,size));
                         } else {
+                            Log.d("asdda", "run: 空一次");
                             ToastUtils.showShort("串口还未能接收数据");
                         }
                     }
@@ -137,8 +140,6 @@ public class SerialPortUtils {
 
         }
     }
-
-    public OnDataReceiveListener onDataReceiveListener = null;
 
     public interface OnDataReceiveListener {
         void onDataReceive(String hexStr);

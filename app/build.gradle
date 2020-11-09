@@ -129,5 +129,6 @@ dependencies {
     //改动
     implementation rootProject.ext.dependencies["blankj"]
     implementation(name: 'wxfacepay-release', ext: 'aar')
-    implementation files('libs/printersdkv1.jar')
+    //implementation files('libs/printersdkv1.jar')
+    implementation files('libs/jbsdk.jar')
 }

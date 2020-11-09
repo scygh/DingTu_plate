@@ -51,7 +51,7 @@ public class SynModel extends BaseModel implements SynContract.Model {
         this.mGson = null;
         this.mApplication = null;
     }
-    @Override public Observable<BaseResponse<List<EMGoodsTo.GoodsBean>>> getEMGoods(int state) {
+    @Override public Observable<BaseResponse<List<EMGoodsTo.RowsBean.GoodsBean>>> getEMGoods(int state) {
         return mRepositoryManager.obtainRetrofitService(UserService.class).getEMGoods(state);
     }
 }

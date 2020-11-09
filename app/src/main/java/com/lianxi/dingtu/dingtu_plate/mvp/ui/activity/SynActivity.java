@@ -68,7 +68,7 @@ public class SynActivity extends BaseActivity<SynPresenter> implements SynContra
 
     private EMGoodsRepo emGoodsRepo = new EMGoodsRepo(this);
     private MyTask task;
-    private List<EMGoodsTo.GoodsBean> emGoodsToList = new ArrayList<>();
+    private List<EMGoodsTo.RowsBean.GoodsBean> emGoodsToList = new ArrayList<>();
 
     @Override
     public void setupActivityComponent(@NonNull AppComponent appComponent) {
@@ -132,7 +132,7 @@ public class SynActivity extends BaseActivity<SynPresenter> implements SynContra
     }
 
     @Override
-    public void onPagers(List<EMGoodsTo.GoodsBean> emGoodsToList) {
+    public void onPagers(List<EMGoodsTo.RowsBean.GoodsBean> emGoodsToList) {
         this.emGoodsToList = emGoodsToList;
         task = new MyTask();
         task.execute();
@@ -173,7 +173,7 @@ public class SynActivity extends BaseActivity<SynPresenter> implements SynContra
         protected String doInBackground(String... s) {
             try {
                 int count = 0;
-                for (EMGoodsTo.GoodsBean emGoodsTo : emGoodsToList) {
+                for (EMGoodsTo.RowsBean.GoodsBean emGoodsTo : emGoodsToList) {
                     Sql_EMGoods sqlEmGoods = new Sql_EMGoods();
                     sqlEmGoods.setGoodsNo(emGoodsTo.getGoodsNo());
                     sqlEmGoods.setGoodsName(emGoodsTo.getGoodsName());

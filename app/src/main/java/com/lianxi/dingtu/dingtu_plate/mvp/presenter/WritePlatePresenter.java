@@ -71,7 +71,7 @@ public class WritePlatePresenter extends BasePresenter<WritePlateContract.Model,
     public void getEMGoods(String type) {
         mModel.onEmGoodsTo(1,50,type)
                 .compose(RxUtils.applySchedulers(mRootView))
-                .subscribe(new ErrorHandleSubscriber<BaseResponse<List<EMGoodsTo>>>(mErrorHandler) {
+                .subscribe(new ErrorHandleSubscriber<BaseResponse<EMGoodsTo>>(mErrorHandler) {
                     @Override
                     public void onError(Throwable t) {
                         super.onError(t);
@@ -79,7 +79,7 @@ public class WritePlatePresenter extends BasePresenter<WritePlateContract.Model,
                     }
 
                     @Override
-                    public void onNext(BaseResponse<List<EMGoodsTo>> getDetailList) {
+                    public void onNext(BaseResponse<EMGoodsTo> getDetailList) {
                         if (getDetailList != null && getDetailList.getStatusCode() == 200) {
                             mRootView.onEmGoodsTo(getDetailList.getContent());
                         }

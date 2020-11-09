@@ -62,9 +62,9 @@ public class SynPresenter extends BasePresenter<SynContract.Model, SynContract.V
         mModel.getEMGoods(1)
                 .observeOn(Schedulers.io())
                 .compose(RxLifecycleUtils.bindToLifecycle(mRootView))
-                .subscribe(new ErrorHandleSubscriber<BaseResponse<List<EMGoodsTo.GoodsBean>>>(mErrorHandler) {
+                .subscribe(new ErrorHandleSubscriber<BaseResponse<List<EMGoodsTo.RowsBean.GoodsBean>>>(mErrorHandler) {
                     @Override
-                    public void onNext(BaseResponse<List<EMGoodsTo.GoodsBean>> listBaseResponse) {
+                    public void onNext(BaseResponse<List<EMGoodsTo.RowsBean.GoodsBean>> listBaseResponse) {
                         if (listBaseResponse.isSuccess()) {
                             if (listBaseResponse.getContent() != null) {
                                 mRootView.onPagers(listBaseResponse.getContent());

@@ -22,8 +22,9 @@ public class KeySwitchTo {
      * FirmwareVersion : SCM_EM_1000-181212
      */
 
-    private int ID;
-    private String PlaceID;
+    private int Id;
+    private String Name;
+    private String PlaceId;
     private int Pattern;
     private double AutoAmount;
     private boolean KeyEnabled;
@@ -31,148 +32,183 @@ public class KeySwitchTo {
     private boolean DepositEnabled;
     private boolean RefundEnabled;
     private boolean CorrectionEnabled;
-    private String AllowType;
-    private String AllowMeal;
-    private String LinkIpAddress;
-    private String LinkPort;
-    private String GoodsRange;
-    private int State;
     private boolean DiscountEnabled;
+    private int[] AllowType;
+    private String AllowTypeAsString;
+    private int[] AllowMeal;
+    private String AllowMealAsString;
+    private String LinkIpAddress;
+    private int LinkPort;
+    private String GoodsRange;
     private String FirmwareVersion;
+    private int DeviceVersion;
+    private int State;
 
-    public int getID() {
-        return ID;
+    public int getId() {
+        return Id;
     }
 
-    public void setID(int ID) {
-        this.ID = ID;
+    public void setId(int id) {
+        Id = id;
     }
 
-    public String getPlaceID() {
-        return PlaceID;
+    public String getName() {
+        return Name;
     }
 
-    public void setPlaceID(String PlaceID) {
-        this.PlaceID = PlaceID;
+    public void setName(String name) {
+        Name = name;
+    }
+
+    public String getPlaceId() {
+        return PlaceId;
+    }
+
+    public void setPlaceId(String placeId) {
+        PlaceId = placeId;
     }
 
     public int getPattern() {
         return Pattern;
     }
 
-    public void setPattern(int Pattern) {
-        this.Pattern = Pattern;
+    public void setPattern(int pattern) {
+        Pattern = pattern;
     }
 
     public double getAutoAmount() {
         return AutoAmount;
     }
 
-    public void setAutoAmount(double AutoAmount) {
-        this.AutoAmount = AutoAmount;
+    public void setAutoAmount(double autoAmount) {
+        AutoAmount = autoAmount;
     }
 
     public boolean isKeyEnabled() {
         return KeyEnabled;
     }
 
-    public void setKeyEnabled(boolean KeyEnabled) {
-        this.KeyEnabled = KeyEnabled;
+    public void setKeyEnabled(boolean keyEnabled) {
+        KeyEnabled = keyEnabled;
     }
 
     public boolean isMealEnabled() {
         return MealEnabled;
     }
 
-    public void setMealEnabled(boolean MealEnabled) {
-        this.MealEnabled = MealEnabled;
+    public void setMealEnabled(boolean mealEnabled) {
+        MealEnabled = mealEnabled;
     }
 
     public boolean isDepositEnabled() {
         return DepositEnabled;
     }
 
-    public void setDepositEnabled(boolean DepositEnabled) {
-        this.DepositEnabled = DepositEnabled;
+    public void setDepositEnabled(boolean depositEnabled) {
+        DepositEnabled = depositEnabled;
     }
 
     public boolean isRefundEnabled() {
         return RefundEnabled;
     }
 
-    public void setRefundEnabled(boolean RefundEnabled) {
-        this.RefundEnabled = RefundEnabled;
+    public void setRefundEnabled(boolean refundEnabled) {
+        RefundEnabled = refundEnabled;
     }
 
     public boolean isCorrectionEnabled() {
         return CorrectionEnabled;
     }
 
-    public void setCorrectionEnabled(boolean CorrectionEnabled) {
-        this.CorrectionEnabled = CorrectionEnabled;
-    }
-
-    public String getAllowType() {
-        return AllowType;
-    }
-
-    public void setAllowType(String AllowType) {
-        this.AllowType = AllowType;
-    }
-
-    public String getAllowMeal() {
-        return AllowMeal;
-    }
-
-    public void setAllowMeal(String AllowMeal) {
-        this.AllowMeal = AllowMeal;
-    }
-
-    public String getLinkIpAddress() {
-        return LinkIpAddress;
-    }
-
-    public void setLinkIpAddress(String LinkIpAddress) {
-        this.LinkIpAddress = LinkIpAddress;
-    }
-
-    public String getLinkPort() {
-        return LinkPort;
-    }
-
-    public void setLinkPort(String LinkPort) {
-        this.LinkPort = LinkPort;
-    }
-
-    public String getGoodsRange() {
-        return GoodsRange;
-    }
-
-    public void setGoodsRange(String GoodsRange) {
-        this.GoodsRange = GoodsRange;
-    }
-
-    public int getState() {
-        return State;
-    }
-
-    public void setState(int State) {
-        this.State = State;
+    public void setCorrectionEnabled(boolean correctionEnabled) {
+        CorrectionEnabled = correctionEnabled;
     }
 
     public boolean isDiscountEnabled() {
         return DiscountEnabled;
     }
 
-    public void setDiscountEnabled(boolean DiscountEnabled) {
-        this.DiscountEnabled = DiscountEnabled;
+    public void setDiscountEnabled(boolean discountEnabled) {
+        DiscountEnabled = discountEnabled;
+    }
+
+    public int[] getAllowType() {
+        return AllowType;
+    }
+
+    public void setAllowType(int[] allowType) {
+        AllowType = allowType;
+    }
+
+    public String getAllowTypeAsString() {
+        return AllowTypeAsString;
+    }
+
+    public void setAllowTypeAsString(String allowTypeAsString) {
+        AllowTypeAsString = allowTypeAsString;
+    }
+
+    public int[] getAllowMeal() {
+        return AllowMeal;
+    }
+
+    public void setAllowMeal(int[] allowMeal) {
+        AllowMeal = allowMeal;
+    }
+
+    public String getAllowMealAsString() {
+        return AllowMealAsString;
+    }
+
+    public void setAllowMealAsString(String allowMealAsString) {
+        AllowMealAsString = allowMealAsString;
+    }
+
+    public String getLinkIpAddress() {
+        return LinkIpAddress;
+    }
+
+    public void setLinkIpAddress(String linkIpAddress) {
+        LinkIpAddress = linkIpAddress;
+    }
+
+    public int getLinkPort() {
+        return LinkPort;
+    }
+
+    public void setLinkPort(int linkPort) {
+        LinkPort = linkPort;
+    }
+
+    public String getGoodsRange() {
+        return GoodsRange;
+    }
+
+    public void setGoodsRange(String goodsRange) {
+        GoodsRange = goodsRange;
     }
 
     public String getFirmwareVersion() {
         return FirmwareVersion;
     }
 
-    public void setFirmwareVersion(String FirmwareVersion) {
-        this.FirmwareVersion = FirmwareVersion;
+    public void setFirmwareVersion(String firmwareVersion) {
+        FirmwareVersion = firmwareVersion;
+    }
+
+    public int getDeviceVersion() {
+        return DeviceVersion;
+    }
+
+    public void setDeviceVersion(int deviceVersion) {
+        DeviceVersion = deviceVersion;
+    }
+
+    public int getState() {
+        return State;
+    }
+
+    public void setState(int state) {
+        State = state;
     }
 }

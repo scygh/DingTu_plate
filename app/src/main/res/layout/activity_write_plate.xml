@@ -142,6 +142,18 @@
                     android:orientation="horizontal">
 
                     <Button
+                        android:id="@+id/initCard"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginRight="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/progress_bg"
+                        android:text="初始化"
+                        android:textColor="@color/GREEN"
+                        android:textSize="40sp"
+                        android:visibility="visible"/>
+
+                    <Button
                         android:id="@+id/clear"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"

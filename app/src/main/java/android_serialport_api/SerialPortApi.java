@@ -4,6 +4,7 @@ package android_serialport_api;
 import android.os.Handler;
 import android.util.Log;
 
+import com.blankj.utilcode.util.ToastUtils;
 import com.lianxi.dingtu.dingtu_plate.app.base.MainApplication;
 import com.lianxi.dingtu.dingtu_plate.app.entity.PlateCardInfo;
 
@@ -23,7 +24,7 @@ public class SerialPortApi {
     public static final String CLOSERF_FIELD = "02 05 02 aa 03";
     public static final String CLOSERF_FIELD_OK = "0205020503";
     public static final String HINT_CLOSERF_FIELD_OK = "射频场已关闭";
-    public static final String READCARD_PATTERN = "02 06 03 00 aa 03";
+    public static final String READCARD_PATTERN = "02 06 03 03 aa 03";
     public static final String READCARD_PATTERN_OK = "0205030403";
     public static final String HINI_READCARD_PATTERN_OK = "进入连续读三块读卡模式";
     public static final String READCARDUID_PATTERN = "02 05 05 aa 03";
@@ -45,6 +46,9 @@ public class SerialPortApi {
     public static SerialPortResponse response;
     private static PlateCardInfo cardInfo;
 
+    //每次读到的卡片编号
+    private static String cardNumHex;
+
     public void setResponse(SerialPortResponse response) {
         this.response = response;
     }
@@ -63,7 +67,13 @@ public class SerialPortApi {
     }
 
     public static SerialPortApi getInstance() {
-        serialPortApi = new SerialPortApi();
+        if (serialPortApi == null) {
+            synchronized (SerialPortApi.class) {
+                if (serialPortApi == null) {
+                    serialPortApi = new SerialPortApi();
+                }
+            }
+        }
         return serialPortApi;
     }
 
@@ -74,16 +84,19 @@ public class SerialPortApi {
         MainApplication.getSerialPortUtils().setOnDataReceiveListener(new SerialPortUtils.OnDataReceiveListener() {
             @Override
             public void onDataReceive(String hexStr) {
+                Log.d(TAG, "接收到字符串：" + hexStr);
                 stringBuilder.append(hexStr);
-                if (stringBuilder.toString().contains("020E0400") || stringBuilder.toString().contains("020E0500")) {//写盘
+                if (stringBuilder.toString().contains("020E0400") || stringBuilder.toString().contains("020E0500")) {//写盘返回14个字节的020E0400DC1972DB500104E0D103
                     if (stringBuilder.length() == 28) {//直到读全开始校验
                         if (getXor(ChangeTool.HexToByteArr(stringBuilder.toString())) == 0) {
-                            Log.d(TAG, "卡片" + stringBuilder.toString().substring(8, 24));
+                            Log.d(TAG, "单次读UID或者写卡接收：" + stringBuilder.toString());
+                            cardNumHex = stringBuilder.toString().substring(8, 24);
                             if (response != null) {
-                                cardInfo = new PlateCardInfo(stringBuilder.toString().substring(8, 24));
-                                response.onGetUpTo(stringBuilder.toString().substring(8, 24), cardInfo);
+                                cardInfo = new PlateCardInfo(cardNumHex);
+                                response.onGetUpTo(cardNumHex, cardInfo);
                                 if (stringBuilder.toString().contains("020E0500")) {
                                     response.onOperatorSuccess(HAVECARD);
+                                    response.onGetUpTo("HAVECARD", cardInfo);
                                 }
                             }
                         } else {
@@ -94,11 +107,18 @@ public class SerialPortApi {
                         }
                         stringBuilder.delete(0, stringBuilder.length());
                     }
-                } else if (stringBuilder.toString().contains("021A0300")) {//读盘
+                } else if (stringBuilder.toString().contains("021A0300")) {//读盘021A0300DC1972DB500104E000000000000000000000001DDF03
                     if (stringBuilder.length() == 52) {//直到读全开始校验
                         if (getXor(ChangeTool.HexToByteArr(stringBuilder.toString())) == 0) {
-                            String hs = stringBuilder.toString().substring(8, 46);
-                            Log.d(TAG, "发现卡片" + hs);
+                            String hs = stringBuilder.toString().substring(8, 48);
+                            cardNumHex = hs.substring(0, 16);
+                            //注释掉后的清盘写盘是加密餐盘
+                            if (!getinitHex(cardNumHex).equalsIgnoreCase(hs.substring(38, 40))) {
+                                ToastUtils.showShort("非原厂商卡");
+                                stringBuilder.delete(0, stringBuilder.length());
+                                return;
+                            }
+                            Log.d(TAG, "读三区块模式接收：" + stringBuilder.toString());
                             if (response != null) {
                                 cardInfo = new PlateCardInfo(hs.substring(0, 16), ChangeTool.HexToInt(hs.substring(16, 20)) + ""
                                         , ChangeTool.HexToInt(hs.substring(20, 24)) + "", ChangeTool.HexToInt(hs.substring(24, 30)) / 100.0, hs.substring(30, 38));
@@ -114,6 +134,7 @@ public class SerialPortApi {
                     }
                 } else if (stringBuilder.toString().contains("020605")) {//无卡
                     if (stringBuilder.length() == 12) {//直到读全开始校验
+                        Log.d(TAG, "单次读模式接收到无卡：" + stringBuilder.toString());
                         if (getXor(ChangeTool.HexToByteArr(stringBuilder.toString())) == 0) {
                             if (response != null) {
                                 response.onOperatorSuccess(NOCARD);
@@ -128,6 +149,7 @@ public class SerialPortApi {
                     }
                 } else {
                     if (stringBuilder.length() == 10) {//直到读全开始校验
+                        Log.d(TAG, "操作返回：" + stringBuilder.toString());
                         if (getXor(ChangeTool.HexToByteArr(stringBuilder.toString())) == 0) {
                             if (stringBuilder.toString().equals(OPENRF_FIELD_OK)) {
                                 Log.d(TAG, HINT_OPENRF_FIELD_OK);
@@ -178,6 +200,25 @@ public class SerialPortApi {
         });
     }
 
+    public static String getinitHex(String num) {
+        int total = 0;
+        Integer integer = null;
+        for (int i = 0; i <= 14; i += 2) {
+            integer = Integer.parseInt(num.substring(i, i + 2), 16);
+            if (i == 0) {
+                total = integer.intValue();
+            } else if (i > 0 && i <= 6) {
+                total *= integer;
+            } else {
+                total += integer;
+            }
+        }
+        Integer init = total & 0xFF;
+        String hexInit = init.toHexString(init);
+        Log.d("asda", "onDataReceive: " + hexInit);
+        return hexInit;
+    }
+
     public static void clearSb() {
         stringBuilder.delete(0, stringBuilder.length());
     }
@@ -222,16 +263,17 @@ public class SerialPortApi {
      * num 商品编号
      */
     public static void gotoClearCardPattern(int num) {
-        MainApplication.getSerialPortUtils().sendSerialPort("02120400" + ChangeTool.numToHex2(num) + "00000000000000000000 0003");
+        Log.d(TAG, "gotoClearCardPattern: " + getinitHex(cardNumHex));
+        MainApplication.getSerialPortUtils().sendSerialPort("02120403" + ChangeTool.numToHex2(num) + "000000000000000000" + getinitHex(cardNumHex) + "0003");
     }
 
     /**
      * descirption: 进入连续写三个块命令写卡
-     * num 商品编号
+     * num 两个字节商品编号 两个字节单位代码 三个字节价格 4个字节的日期 1个字节的校验
      */
     public static void gotoWriteCardPattern(int num, int companyCode, int price, String date) {
-        MainApplication.getSerialPortUtils().sendSerialPort("02120400" + ChangeTool.numToHex2(num)
-                + ChangeTool.numToHex2(companyCode) + ChangeTool.numToHex3(price) + date + "000003");
+        MainApplication.getSerialPortUtils().sendSerialPort("02120403" + ChangeTool.numToHex2(num)
+                + ChangeTool.numToHex2(companyCode) + ChangeTool.numToHex3(price) + date + getinitHex(cardNumHex) + "0003");
     }
 
     /**
@@ -272,14 +314,14 @@ public class SerialPortApi {
     }
 
     /**
-    * descirption: 切换至盘询模式再开启读三块盘
-    */
+     * descirption: 切换至盘询模式再开启读三块盘
+     */
     public static void openReadPattern(Handler handler) {
-       closeRF_field();
+        closeRF_field();
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-               PxPattern();
+                PxPattern();
             }
         }, 300);
         handler.postDelayed(new Runnable() {
@@ -295,5 +337,9 @@ public class SerialPortApi {
             }
         }, 900);
     }
+
+    /**
+     * descirption: 初始化盘子加密
+     */
 
 }

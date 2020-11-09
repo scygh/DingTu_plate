@@ -10,13 +10,13 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.EMGoodsTo;
 
 import java.util.List;
 
-public class PayGoodsAdapter extends BaseItemDraggableAdapter<EMGoodsTo.GoodsBean, BaseViewHolder> {
-    public PayGoodsAdapter(int id,@Nullable List<EMGoodsTo.GoodsBean> data) {
+public class PayGoodsAdapter extends BaseItemDraggableAdapter<EMGoodsTo.RowsBean.GoodsBean, BaseViewHolder> {
+    public PayGoodsAdapter(int id,@Nullable List<EMGoodsTo.RowsBean.GoodsBean> data) {
         super(id,data);
     }
 
     @Override
-    protected void convert(BaseViewHolder helper, EMGoodsTo.GoodsBean item) {
+    protected void convert(BaseViewHolder helper, EMGoodsTo.RowsBean.GoodsBean item) {
         helper.setText(R.id.item_goods_num,item.getGoodsNo()+"")
         .setText(R.id.item_goods_name,item.getGoodsName()+"")
         .setText(R.id.item_goods_price,item.getPrice()+"元")

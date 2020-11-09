@@ -19,9 +19,9 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.EMGoodsTo;
 public class MyExtendableListViewAdapter extends BaseExpandableListAdapter {
     private Context mcontext;
     public String[] groupString;
-    public EMGoodsTo[][] childString;
+    public EMGoodsTo.RowsBean[][] childString;
 
-    public MyExtendableListViewAdapter(Context mcontext, String[] groupString, EMGoodsTo[][] childString) {
+    public MyExtendableListViewAdapter(Context mcontext, String[] groupString, EMGoodsTo.RowsBean[][] childString) {
         this.mcontext = mcontext;
         this.groupString = groupString;
         this.childString = childString;

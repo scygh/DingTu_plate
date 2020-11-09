@@ -42,13 +42,13 @@ public interface UserService {
     Observable<BaseResponse<List<EMGoodsTypeTo>>> getEMGoodsType(@Query("state") String state);
 
     @GET("Api/EMGoods/GetPage")
-    Observable<BaseResponse<List<EMGoodsTo>>> getEMGoodsDetail(@Query("index") Integer index, @Query("count") Integer count, @Query("goodsType") String goodsType);
+    Observable<BaseResponse<EMGoodsTo>> getEMGoodsDetail(@Query("pageIndex") Integer pageIndex, @Query("pageSize") Integer pageSize, @Query("goodsType") String goodsType);
 
     @GET("Api/EMGoods/GetList")
-    Observable<BaseResponse<List<EMGoodsTo.GoodsBean>>> getEMGoods(@Query("state") int state);
+    Observable<BaseResponse<List<EMGoodsTo.RowsBean.GoodsBean>>> getEMGoods(@Query("state") int state);
 
     @GET("Api/EMGoods/Get")
-    Observable<BaseResponse<EMGoodsTo.GoodsBean>> getEMGoodsByNum(@Query("goodsNo") int goodsNo);
+    Observable<BaseResponse<EMGoodsTo.RowsBean.GoodsBean>> getEMGoodsByNum(@Query("goodsNo") int goodsNo);
 
     @GET("Api/User/GetByNumber")
     Observable<BaseResponse<CardInfoTo>> getByNumber(@Query("number") int number);
