@@ -13,6 +13,7 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.QRExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.QRReadTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseTo;
+import com.lianxi.dingtu.dingtu_plate.app.entity.UserGetTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseTo;
 
@@ -52,6 +53,7 @@ public interface OnlineContract {
 
         void onWxfacePaySuccess(WxExpenseTo wxExpenseTo);
 
+        void onUserGetTo(UserGetTo content);
     }
 
     //Model层定义接口,外部只需关心Model返回的数据,无需关心内部细节,即是否使用缓存
@@ -72,5 +74,6 @@ public interface OnlineContract {
 
         Observable<BaseResponse<GetFacePayAuthInfoTo>> getFacePayAuthInfo(GetFacePayAuthInfoParam param);
 
+        Observable<BaseResponse<UserGetTo>> userGetTo(int number);
     }
 }

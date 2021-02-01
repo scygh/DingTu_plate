@@ -13,7 +13,7 @@
     </style>
     <style name="ToolBarTheme" parent="ThemeOverlay.AppCompat.Light">
         <!-- navigation icon color -->
-        <item name="colorControlNormal">@color/color_62646c</item>
+        <item name="colorControlNormal">@color/color_TextPrimary</item>
         <item name="android:textColorPrimary">@color/color_4d4d4d</item>
     </style>
     <style name="Splash" parent="AppTheme">

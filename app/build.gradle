@@ -101,8 +101,8 @@ dependencies {
     testImplementation rootProject.ext.dependencies["canary-release"]
     implementation files('libs/commons-lang3-3.5.jar')
     implementation files('libs/Msc.jar')
-    implementation rootProject.ext.dependencies["nfclib"]
     implementation rootProject.ext.dependencies["bottom-bar"]
+    implementation rootProject.ext.dependencies["nfclib"]
     implementation rootProject.ext.dependencies["fastjson"]
     implementation rootProject.ext.dependencies["swipeback"]
     implementation rootProject.ext.dependencies["Toasty"]

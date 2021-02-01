@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.DividerItemDecoration;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import android_serialport_api.SerialPortApi;
@@ -67,7 +69,7 @@ import static com.jess.arms.utils.Preconditions.checkNotNull;
  * <a href="https://github.com/JessYanCoding/MVPArmsTemplate">模版请保持更新</a>
  * ================================================
  */
-public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implements WritePlateContract.View {
+public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implements WritePlateContract.View, TextToSpeech.OnInitListener {
 
     @BindView(R.id.goods_name)
     TextView goodsName;
@@ -95,6 +97,7 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
     MyExtendableListViewAdapter lvadapter;
     List<EMGoodsTypeTo> myemGoodsTypeTo;
     private int pattern = 3;
+    private TextToSpeech textToSpeech;
     @SuppressLint("HandlerLeak")
     Handler handler = new Handler() {
         @Override
@@ -112,6 +115,9 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         }
     };
 
+    /**
+     * descirption: 获取菜品类别列表
+     */
     @Override
     public void onEmGoodsTypeTo(List<EMGoodsTypeTo> emGoodsTypeTo) {
         if (myemGoodsTypeTo != null) {
@@ -125,6 +131,9 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         }
     }
 
+    /**
+     * descirption: 获取菜品类别下面的详细菜品，再初始化二级列表
+     */
     @Override
     public void onEmGoodsTo(EMGoodsTo emGoodsTo) {
         //进行判断后再放入指定的位置，保证有序
@@ -190,7 +199,9 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         this.setTitle("商品写盘");
         progressBar.setVisibility(View.VISIBLE);
         //初始化音频
-        AudioUtils.getInstance().init(getApplicationContext());
+        //AudioUtils.getInstance().init(getApplicationContext());
+        textToSpeech = new TextToSpeech(this, this);
+        //初始化串口
         SerialPortApi.initPort();
         SerialPortApi.getInstance().setResponse(new SerialPortApi.SerialPortResponse() {
             @Override
@@ -210,7 +221,7 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
                     }
                 } else if (pattern == 3) {//如果是读盘模式，读到就去刷新列表
                     updateList(card);
-                } else if (pattern == 0) {
+                } else if (pattern == 0) {//如果是初始化模式
                     if (card.equalsIgnoreCase("HAVECARD")) {
                         SerialPortApi.gotoClearCardPattern(0);
                     } else {
@@ -245,14 +256,18 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
                     SerialPortApi.openRF_field();
                 } else if (msg.equals(SerialPortApi.HINI_READCARDUID_PATTERN_OK)) {
                     SerialPortApi.openRF_field();
-                }else if (msg.equals(SerialPortApi.HINT_OPENRF_FIELD_OK)) {
+                } else if (msg.equals(SerialPortApi.HINT_OPENRF_FIELD_OK)) {
                     ToastUtils.showShort("请放置餐盘");
                 }
             }
         });
+        //获取菜品类别列表
         mPresenter.getEmGoodsTypeTo("1");
     }
 
+    /**
+     * descirption: 更新盘子列表
+     */
     public void updateList(String card) {
         uidSet.add(card);
         uidList.clear();
@@ -274,6 +289,51 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         }, 200);
     }
 
+
+    @OnClick({R.id.initCard, R.id.clear, R.id.write, R.id.clear_list, R.id.read, R.id.back_ib})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.initCard:
+                pattern = 0;
+                clearList();
+                openSingleReadPattern();
+                break;
+            case R.id.clear:
+                pattern = 1;
+                clearList();
+                changeStyle("clear");
+                openSingleReadPattern();
+                break;
+            case R.id.clear_list:
+                clearList();
+                break;
+            case R.id.write:
+                pattern = 2;
+                clearList();
+                changeStyle("write");
+                openSingleReadPattern();
+                break;
+            case R.id.read:
+                pattern = 3;
+                clearList();
+                changeStyle("read");
+                openSingleReadPattern();
+                break;
+            case R.id.back_ib:
+                finish();
+                break;
+        }
+    }
+
+    /**
+     * descirption: 清空列表
+     */
+    private void clearList() {
+        uidSet.clear();
+        uidList.clear();
+        handler.sendEmptyMessage(1);
+    }
+
     /**
      * descirption: 初始化清空 开启单次读模式
      */
@@ -288,6 +348,9 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         }, 200);
     }
 
+    /**
+     * descirption: 初始化餐盘信息列表
+     */
     private void initRecyclerView() {
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(WritePlateActivity.this, RecyclerView.VERTICAL, false);
         recyclerView.setLayoutManager(linearLayoutManager);
@@ -318,6 +381,88 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
         });
     }
 
+    private void writePlate() {
+        int conpanyCode = (int) SpUtils.get(WritePlateActivity.this, AppConstant.Api.COMPANYCODE, 0);
+        if (!TextUtils.isEmpty(goodsPrice.getText().toString()) && !TextUtils.isEmpty(goodsNum.getText().toString())) {
+            double price = Double.parseDouble(goodsPrice.getText().toString());
+            int centprice = (int) (price * 100);
+            SimpleDateFormat format = new SimpleDateFormat("yyMMddHH");
+            String currentDate = format.format(new Date(System.currentTimeMillis()));
+            SerialPortApi.gotoWriteCardPattern(Integer.parseInt(goodsNum.getText().toString()), conpanyCode, centprice, currentDate);
+        } else {
+            //AudioUtils.getInstance().speakText("请先选择商品");
+            speakChinese("请先选择商品，再点击写盘");
+        }
+
+    }
+
+    private void changeStyle(String style) {
+        if (style.equals("clear")) {
+            clear.setBackground(getResources().getDrawable(R.drawable.progress_bg_select));
+            clear.setTextColor(getResources().getColor(R.color.white));
+            write.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            write.setTextColor(getResources().getColor(R.color.colorAccent));
+            read.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            read.setTextColor(getResources().getColor(R.color.colorAccent));
+        } else if (style.equals("write")) {
+            write.setBackground(getResources().getDrawable(R.drawable.progress_bg_select));
+            write.setTextColor(getResources().getColor(R.color.white));
+            clear.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            clear.setTextColor(getResources().getColor(R.color.colorAccent));
+            read.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            read.setTextColor(getResources().getColor(R.color.colorAccent));
+        } else if (style.equals("read")) {
+            read.setBackground(getResources().getDrawable(R.drawable.progress_bg_select));
+            read.setTextColor(getResources().getColor(R.color.white));
+            clear.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            clear.setTextColor(getResources().getColor(R.color.colorAccent));
+            write.setBackground(getResources().getDrawable(R.drawable.progress_bg));
+            write.setTextColor(getResources().getColor(R.color.colorAccent));
+        }
+    }
+
+    private void speakChinese(String msg) {
+        if (textToSpeech != null && !textToSpeech.isSpeaking()) {
+            // 设置音调，值越大声音越尖（女生），值越小则变成男声,1.0是常规
+            textToSpeech.setPitch(1.0f);
+            //设定语速 ，默认1.0正常语速
+            textToSpeech.setSpeechRate(1.2f);
+            //朗读，注意这里三个参数的added in API level 4   四个参数的added in API level 21
+            textToSpeech.speak(msg, TextToSpeech.QUEUE_FLUSH, null);
+        }
+    }
+
+    @Override
+    public void onInit(int i) {
+        if (i == TextToSpeech.SUCCESS) {
+            int result = textToSpeech.setLanguage(Locale.CHINA);
+            if (result == TextToSpeech.LANG_MISSING_DATA
+                    || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Toast.makeText(this, "数据丢失或不支持", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        SerialPortApi.closeRF_field();
+        if (EMGoodsTypeToNameList != null) {
+            EMGoodsTypeToNameList.clear();
+        }
+        if (EMGoodsTolist != null) {
+            EMGoodsTolist.clear();
+        }
+        if (myemGoodsTypeTo != null) {
+            myemGoodsTypeTo.clear();
+        }
+        if (textToSpeech != null) {
+            textToSpeech.shutdown();
+            textToSpeech.stop();
+            textToSpeech = null;
+        }
+        super.onDestroy();
+    }
+
     @Override
     public void showLoading() {
 
@@ -343,97 +488,5 @@ public class WritePlateActivity extends BaseActivity<WritePlatePresenter> implem
     @Override
     public void killMyself() {
         finish();
-    }
-
-
-    @OnClick({R.id.initCard, R.id.clear, R.id.write, R.id.clear_list, R.id.read, R.id.back_iv})
-    public void onViewClicked(View view) {
-        switch (view.getId()) {
-            case R.id.initCard:
-                pattern = 0;
-                clearList();
-                openSingleReadPattern();
-                break;
-            case R.id.clear:
-                pattern = 1;
-                clearList();
-                changeStyle("clear");
-                openSingleReadPattern();
-                break;
-            case R.id.clear_list:
-                clearList();
-                break;
-            case R.id.write:
-                pattern = 2;
-                clearList();
-                changeStyle("write");
-                openSingleReadPattern();
-                break;
-            case R.id.read:
-                pattern = 3;
-                clearList();
-                changeStyle("read");
-                openSingleReadPattern();
-                break;
-            case R.id.back_iv:
-                finish();
-                break;
-        }
-    }
-
-    private void writePlate() {
-        int conpanyCode = (int) SpUtils.get(WritePlateActivity.this, AppConstant.Api.COMPANYCODE, 0);
-        if (!TextUtils.isEmpty(goodsPrice.getText().toString()) && !TextUtils.isEmpty(goodsNum.getText().toString())) {
-            double price = Double.parseDouble(goodsPrice.getText().toString());
-            int centprice = (int) (price * 100);
-            SimpleDateFormat format = new SimpleDateFormat("yyMMddHH");
-            String currentDate = format.format(new Date(System.currentTimeMillis()));
-            SerialPortApi.gotoWriteCardPattern(Integer.parseInt(goodsNum.getText().toString()), conpanyCode, centprice, currentDate);
-        } else {
-            AudioUtils.getInstance().speakText("请先选择商品");
-        }
-
-    }
-
-    private void changeStyle(String style) {
-        if (style.equals("clear")) {
-            clear.setBackgroundColor(getResources().getColor(R.color.GREEN));
-            clear.setTextColor(getResources().getColor(R.color.white));
-            write.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            write.setTextColor(getResources().getColor(R.color.GREEN));
-            read.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            read.setTextColor(getResources().getColor(R.color.GREEN));
-        } else if (style.equals("write")) {
-            write.setBackgroundColor(getResources().getColor(R.color.GREEN));
-            write.setTextColor(getResources().getColor(R.color.white));
-            clear.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            clear.setTextColor(getResources().getColor(R.color.GREEN));
-            read.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            read.setTextColor(getResources().getColor(R.color.GREEN));
-        } else if (style.equals("read")) {
-            read.setBackgroundColor(getResources().getColor(R.color.GREEN));
-            read.setTextColor(getResources().getColor(R.color.white));
-            clear.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            clear.setTextColor(getResources().getColor(R.color.GREEN));
-            write.setBackground(getResources().getDrawable(R.drawable.progress_bg));
-            write.setTextColor(getResources().getColor(R.color.GREEN));
-        }
-    }
-
-    private void clearList() {
-        uidSet.clear();
-        uidList.clear();
-        handler.sendEmptyMessage(1);
-    }
-
-    @Override
-    protected void onDestroy() {
-        SerialPortApi.closeRF_field();
-        EMGoodsTypeToNameList.clear();
-        EMGoodsTolist.clear();
-        if (myemGoodsTypeTo != null) {
-            myemGoodsTypeTo.clear();
-        }
-        super.onDestroy();
     }
 }

@@ -29,7 +29,7 @@ public class ConfigUtil {
         return pref.getString(key, strDefault);
     }
 
-	/* boolean类型 */
+    /* boolean类型 */
 
     public static void saveBoolean(SharedPreferences pref, String key, boolean value) {
         SharedPreferences.Editor edit = pref.edit();
@@ -50,7 +50,7 @@ public class ConfigUtil {
         return pref.getBoolean(key, strDefault);
     }
 
-	/* int类型 */
+    /* int类型 */
 
     public static void saveInt(SharedPreferences pref, String key, int value) {
         SharedPreferences.Editor edit = pref.edit();

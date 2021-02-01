@@ -217,6 +217,7 @@ public class LoginActivity extends BaseActivity<LoginPresenter> implements Login
                 String username = etUsername.getText().toString().trim();
                 String password = etPassword.getText().toString().trim();
                 mPresenter.login(username, password);
+                //mPresenter.login("正式环境测试", "123456");
                 break;
         }
     }

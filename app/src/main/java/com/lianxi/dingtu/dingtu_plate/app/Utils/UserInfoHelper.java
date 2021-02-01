@@ -74,7 +74,7 @@ public class UserInfoHelper {
 
     public void updateLogin(boolean flag) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        ConfigUtil.saveBoolean(sp,KEY_IS_LOGIN_INFO, flag);
+        ConfigUtil.saveBoolean(sp, KEY_IS_LOGIN_INFO, flag);
     }
 
     public void clearAll() {

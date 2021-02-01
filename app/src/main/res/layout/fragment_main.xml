@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/offset_100dp"
+                android:paddingTop="@dimen/offset_60dp"
+                android:paddingRight="@dimen/offset_100dp"
+                android:paddingBottom="@dimen/offset_15dp">
+
+                <LinearLayout
+                    android:id="@+id/online"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_margin="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/main_card_bg"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="@dimen/size_80dp"
+                        android:layout_height="@dimen/size_80dp"
+                        android:layout_marginBottom="@dimen/offset_20dp"
+                        android:background="@drawable/onlinepay_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="在线消费"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/offline"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_margin="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/main_card_bg"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="@dimen/size_80dp"
+                        android:layout_height="@dimen/size_80dp"
+                        android:layout_marginBottom="@dimen/offset_20dp"
+                        android:background="@drawable/offlinepay_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="离线消费"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/setup"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_margin="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/main_card_bg"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="invisible">
+
+                    <ImageView
+                        android:layout_width="@dimen/size_80dp"
+                        android:layout_height="@dimen/size_80dp"
+                        android:layout_marginBottom="@dimen/offset_20dp"
+                        android:background="@drawable/setting_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="系统设置"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/offset_100dp"
+                android:paddingTop="@dimen/offset_15dp"
+                android:paddingRight="@dimen/offset_100dp"
+                android:paddingBottom="@dimen/offset_60dp">
+
+                <LinearLayout
+                    android:id="@+id/writeplate"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_marginBottom="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/main_card_bg"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="@dimen/size_80dp"
+                        android:layout_height="@dimen/size_80dp"
+                        android:layout_marginBottom="@dimen/offset_20dp"
+                        android:background="@drawable/writeplate_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="商品写盘"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/syn"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_marginBottom="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/main_card_bg"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="@dimen/size_80dp"
+                        android:layout_height="@dimen/size_80dp"
+                        android:layout_marginBottom="@dimen/offset_20dp"
+                        android:background="@drawable/async_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="商品同步"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_marginBottom="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/goleft_ib"
+            android:layout_width="@dimen/size_30dp"
+            android:layout_height="@dimen/size_30dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_margin="@dimen/offset_20dp"
+            android:background="@drawable/main_goleft_icon"
+            android:visibility="gone"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/goleft_ib"
+            android:layout_alignParentRight="true"
+            android:layout_margin="@dimen/offset_20dp"
+            android:text="设置"
+            android:textColor="@color/color_TextPrimary"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
+</LinearLayout>

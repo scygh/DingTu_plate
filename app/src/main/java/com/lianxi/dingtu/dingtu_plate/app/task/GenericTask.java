@@ -1,7 +1,6 @@
 package com.lianxi.dingtu.dingtu_plate.app.task;
 
 
-
 import android.os.AsyncTask;
 
 import java.util.Observable;
@@ -33,21 +32,17 @@ public abstract class GenericTask extends
     @Override
     protected void onCancelled() {
         super.onCancelled();
-
         if (mListener != null) {
             mListener.onCancelled(this);
         }
-
     }
 
     @Override
     protected void onPostExecute(TaskResult result) {
         super.onPostExecute(result);
-
         if (mListener != null) {
             mListener.onPostExecute(this, result);
         }
-
         if (mFeedback != null) {
             mFeedback.success("");
         }
@@ -56,11 +51,9 @@ public abstract class GenericTask extends
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-
         if (mListener != null) {
             mListener.onPreExecute(this);
         }
-
         if (mFeedback != null) {
             mFeedback.start("");
         }
@@ -69,13 +62,11 @@ public abstract class GenericTask extends
     @Override
     protected void onProgressUpdate(Object... values) {
         super.onProgressUpdate(values);
-
         if (mListener != null) {
             if (values != null && values.length > 0) {
                 mListener.onProgressUpdate(this, values[0]);
             }
         }
-
         if (mFeedback != null) {
             assert values != null;
             mFeedback.update(values[0]);

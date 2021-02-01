@@ -80,8 +80,8 @@ public class ActivityLifecycleCallbacksImpl implements Application.ActivityLifec
             if (activity.findViewById(R.id.toolbar_title) != null) {
                 ((TextView) activity.findViewById(R.id.toolbar_title)).setText(activity.getTitle());
             }
-            if (activity.findViewById(R.id.toolbar_back) != null) {
-                activity.findViewById(R.id.toolbar_back).setOnClickListener(v -> {
+            if (activity.findViewById(R.id.back_ib) != null) {
+                activity.findViewById(R.id.back_ib).setOnClickListener(v -> {
                     activity.onBackPressed();
                 });
             }

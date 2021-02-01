@@ -320,7 +320,7 @@ public class USBHelper {
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x08
         };
-        if (null != mDeviceConnection)
+        if (null != mDeviceConnection && breadRead != true)
             ret = mDeviceConnection.bulkTransfer(epBulkOut, bt4,
                     bt4.length, 1000);
         if (ret == -1) {
@@ -354,8 +354,9 @@ public class USBHelper {
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x09
         };
-        ret = mDeviceConnection.bulkTransfer(epBulkOut, bt5,
-                bt5.length, 1000);
+        if (null != mDeviceConnection && breadRead != true)
+            ret = mDeviceConnection.bulkTransfer(epBulkOut, bt5,
+                    bt5.length, 1000);
         do {
             Receiveytes = null;
             Receiveytes = new byte[64];
@@ -398,8 +399,9 @@ public class USBHelper {
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x0a
         };
-        ret = mDeviceConnection.bulkTransfer(epBulkOut, bt6,
-                bt6.length, 1000);
+        if (null != mDeviceConnection && breadRead != true)
+            ret = mDeviceConnection.bulkTransfer(epBulkOut, bt6,
+                    bt6.length, 1000);
         do {
             Receiveytes = null;
             Receiveytes = new byte[64];

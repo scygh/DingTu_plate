@@ -9,6 +9,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -25,9 +26,16 @@ import com.lianxi.dingtu.dingtu_plate.app.api.AppConstant;
 import com.lianxi.dingtu.dingtu_plate.app.entity.OfflineExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.sql.EMGoodsPayDetailRepo;
 import com.lianxi.dingtu.dingtu_plate.app.sql.Sql_EMGoodsPayDetail;
+import com.lianxi.dingtu.dingtu_plate.app.task.MainTask;
+import com.lianxi.dingtu.dingtu_plate.app.task.TaskParams;
 import com.lianxi.dingtu.dingtu_plate.di.component.DaggerMainComponent;
 import com.lianxi.dingtu.dingtu_plate.mvp.contract.MainContract;
 import com.lianxi.dingtu.dingtu_plate.mvp.presenter.MainPresenter;
+import com.lianxi.dingtu.dingtu_plate.mvp.ui.adapter.MainPagerAdapter;
+import com.lianxi.dingtu.dingtu_plate.mvp.ui.fragment.BaseFragment;
+import com.lianxi.dingtu.dingtu_plate.mvp.ui.fragment.GalleryTransformer;
+import com.lianxi.dingtu.dingtu_plate.mvp.ui.fragment.MainFragment;
+import com.lianxi.dingtu.dingtu_plate.mvp.ui.fragment.SettingFragment;
 import com.tencent.wxpayface.IWxPayfaceCallback;
 import com.tencent.wxpayface.WxPayFace;
 
@@ -61,7 +69,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
 
     @BindView(R.id.offlinepay_record)
     TextView offlinepayRecord;
-    private Intent intent;
     @BindView(R.id.account)
     TextView account;
     @BindView(R.id.companycode)
@@ -69,6 +76,9 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
     private ArrayList<Sql_EMGoodsPayDetail> payDetailList;
     private EMGoodsPayDetailRepo emGoodsPayDetailRepo;
     ProgressDialog pd1;
+    @BindView(R.id.main_vp)
+    ViewPager mainViewPager;
+    List<BaseFragment> baseFragments;
 
     @Override
     public void setupActivityComponent(@NonNull AppComponent appComponent) {
@@ -90,9 +100,8 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
         String a = (String) SpUtils.get(this, AppConstant.Api.ACCOUNT, "");
         account.setText(String.format(" %s", a));
         int code = (int) SpUtils.get(this, AppConstant.Api.COMPANYCODE, 0);
-        companyCode.setText(String.format("单位代码 %s", code));
-
-        Map<String, String> m1 = new HashMap<>();
+        companyCode.setText(String.format(" %s", code));
+        /*Map<String, String> m1 = new HashMap<>();
         try {
             WxPayFace.getInstance().initWxpayface(MainActivity.this, m1, new IWxPayfaceCallback() {
                 @Override
@@ -106,8 +115,21 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
             });
         } catch (Exception e) {
             Toast.makeText(this, "微信人脸支付初始化异常", Toast.LENGTH_SHORT).show();
-        }
+        }*/
+        baseFragments = new ArrayList<>();
+        baseFragments.add(new MainFragment());
+        baseFragments.add(new SettingFragment());
+        mainViewPager.setOffscreenPageLimit(3);
+        mainViewPager.setPageMargin(80);
+        mainViewPager.setPageTransformer(true,new GalleryTransformer());
+        mainViewPager.setAdapter(new MainPagerAdapter(getSupportFragmentManager(), baseFragments));
+        updateApk();
+    }
 
+    private void updateApk() {
+        TaskParams params = new TaskParams();
+        MainTask.UpdateTask dbTask = new MainTask.UpdateTask(this, false);
+        dbTask.execute(params);
     }
 
     @Override
@@ -135,33 +157,6 @@ public class MainActivity extends BaseActivity<MainPresenter> implements MainCon
     @Override
     public void killMyself() {
         finish();
-    }
-
-    @OnClick({R.id.online, R.id.offline, R.id.setup, R.id.writeplate, R.id.syn})
-    public void onViewClicked(View view) {
-        switch (view.getId()) {
-            case R.id.online:
-                intent = new Intent(this, OnlineActivity.class);
-                startActivity(intent);
-                break;
-            case R.id.offline:
-                intent = new Intent(this, OfflineActivity.class);
-                startActivity(intent);
-                break;
-            case R.id.setup:
-                intent = new Intent(this, SettingsActivity.class);
-                startActivity(intent);
-                break;
-            case R.id.writeplate:
-                intent = new Intent(this, WritePlateActivity.class);
-                startActivity(intent);
-                break;
-            case R.id.syn:
-                intent = new Intent(this, SynActivity.class);
-                startActivity(intent);
-                break;
-        }
-
     }
 
     @Override

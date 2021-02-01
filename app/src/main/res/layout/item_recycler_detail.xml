@@ -11,8 +11,8 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="1"
-        android:textColor="@color/black"
-        android:textSize="20dp" />
+        android:textColor="@color/color_TextPrimary"
+        android:textSize="@dimen/textsize_20sp" />
 
     <TextView
         android:id="@+id/detail_good_name"
@@ -21,8 +21,8 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="红烧肉"
-        android:textColor="@color/black"
-        android:textSize="20dp" />
+        android:textColor="@color/color_TextPrimary"
+        android:textSize="20sp" />
 
     <TextView
         android:id="@+id/detail_good_price"
@@ -31,8 +31,8 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="￥ 11.2 元"
-        android:textColor="@color/black"
-        android:textSize="20dp" />
+        android:textColor="@color/color_TextPrimary"
+        android:textSize="20sp" />
 
 
 </LinearLayout>

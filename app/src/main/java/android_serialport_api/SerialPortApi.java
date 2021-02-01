@@ -84,7 +84,7 @@ public class SerialPortApi {
         MainApplication.getSerialPortUtils().setOnDataReceiveListener(new SerialPortUtils.OnDataReceiveListener() {
             @Override
             public void onDataReceive(String hexStr) {
-                Log.d(TAG, "接收到字符串：" + hexStr);
+                Log.d("onDataReceivehexStr", "接收到字符串：" + hexStr);
                 stringBuilder.append(hexStr);
                 if (stringBuilder.toString().contains("020E0400") || stringBuilder.toString().contains("020E0500")) {//写盘返回14个字节的020E0400DC1972DB500104E0D103
                     if (stringBuilder.length() == 28) {//直到读全开始校验
@@ -112,9 +112,9 @@ public class SerialPortApi {
                         if (getXor(ChangeTool.HexToByteArr(stringBuilder.toString())) == 0) {
                             String hs = stringBuilder.toString().substring(8, 48);
                             cardNumHex = hs.substring(0, 16);
-                            //注释掉后的清盘写盘是加密餐盘
+                            //注释掉后的清盘写盘就没有判断了
                             if (!getinitHex(cardNumHex).equalsIgnoreCase(hs.substring(38, 40))) {
-                                ToastUtils.showShort("非原厂商卡");
+                                ToastUtils.showShort("未识别的餐盘");
                                 stringBuilder.delete(0, stringBuilder.length());
                                 return;
                             }

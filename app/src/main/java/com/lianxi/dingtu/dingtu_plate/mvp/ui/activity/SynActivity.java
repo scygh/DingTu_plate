@@ -195,11 +195,13 @@ public class SynActivity extends BaseActivity<SynPresenter> implements SynContra
         protected void onProgressUpdate(Integer... values) {
             super.onProgressUpdate(values);
             adapter.notifyDataSetChanged();
+            mRecyclerView.smoothScrollToPosition(data.size());
             progressBar.setProgress(values[0]);
-
-
         }
     }
 
-    ;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
 }

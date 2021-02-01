@@ -9,10 +9,9 @@
     <item android:id="@android:id/progress">
         <clip>
             <shape>
-
                 <gradient
-                    android:endColor="#c5e1a5"
-                    android:startColor="#7cb342" />
+                    android:endColor="@color/colorAccent"
+                    android:startColor="@color/colorAccentPressed" />
             </shape>
         </clip>
     </item>

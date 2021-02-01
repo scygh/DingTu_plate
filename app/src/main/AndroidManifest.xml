@@ -78,7 +78,8 @@
             android:required="false" />
 
         <activity android:name=".mvp.ui.activity.MainActivity" />
-        <activity android:name=".mvp.ui.activity.LoginActivity" />
+        <activity android:name=".mvp.ui.activity.LoginActivity"
+            android:windowSoftInputMode="stateVisible|adjustResize"/>
         <activity android:name=".mvp.ui.activity.SettingsActivity" />
 
         <activity

@@ -73,14 +73,14 @@ public class UpdateView {
     public void Start() {
         if (getServerVerCode()) {
             String vercode = UpdateConfig.getVerName(mContext);
-            Log.e("updateInfo", "vercode"+vercode+"newVerCode"+newVerCode);
+            Log.e("updateInfo", "vercode" + vercode + "newVerCode" + newVerCode);
 
-            int i =compareVersion(newVerCode,vercode);
-            if (i==1) {
+            int i = compareVersion(newVerCode, vercode);
+            if (i == 1) {
                 Message newMsg = new Message();
                 newMsg.arg1 = 1;
                 dialogHhandler.sendMessage(newMsg);
-                Log.e("updateInfo", "Start: "+newMsg);
+                Log.e("updateInfo", "Start: " + newMsg);
             } else {
                 if (bShow) //判断是否显示不更新对话框
                 {
@@ -95,6 +95,7 @@ public class UpdateView {
 
     /**
      * 0代表相等，1代表version1大于version2，-1代表version1小于version2
+     *
      * @param version1
      * @param version2
      * @return
@@ -105,14 +106,14 @@ public class UpdateView {
         }
         String[] version1Array = version1.split("\\.");
         String[] version2Array = version2.split("\\.");
-        Log.d("HomePageActivity", "version1Array=="+version1Array.length);
-        Log.d("HomePageActivity", "version2Array=="+version2Array.length);
+        Log.d("HomePageActivity", "version1Array==" + version1Array.length);
+        Log.d("HomePageActivity", "version2Array==" + version2Array.length);
         int index = 0;
         // 获取最小长度值
         int minLen = Math.min(version1Array.length, version2Array.length);
         int diff = 0;
         // 循环判断每位的大小
-        Log.d("HomePageActivity", "verTag2=2222="+version1Array[index]);
+        Log.d("HomePageActivity", "verTag2=2222=" + version1Array[index]);
         while (index < minLen
                 && (diff = Integer.parseInt(version1Array[index])
                 - Integer.parseInt(version2Array[index])) == 0) {
@@ -164,7 +165,7 @@ public class UpdateView {
         try {
 //            String verjson = getContent("http://machine_api.dt128.com/Api/VersionRepository/Highest?operatingSystem=android&type=em&extensionName=.apk");
 
-            Call<UpdateInfo> call = ArmsUtils.obtainAppComponentFromContext(mContext).repositoryManager().obtainRetrofitService(UpdateCenterService.class).syncUpdate("Android_GoodsEM");
+            Call<UpdateInfo> call = ArmsUtils.obtainAppComponentFromContext(mContext).repositoryManager().obtainRetrofitService(UpdateCenterService.class).syncUpdate("Android_PlateEM");
 
             UpdateInfo.Content updateInfo = call.execute().body().getContent();
 

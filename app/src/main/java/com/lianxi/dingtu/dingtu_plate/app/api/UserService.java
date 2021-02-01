@@ -14,6 +14,7 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.QRExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.QRReadTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseTo;
+import com.lianxi.dingtu.dingtu_plate.app.entity.UserGetTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.UserInfoTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseTo;
@@ -53,19 +54,31 @@ public interface UserService {
     @GET("Api/User/GetByNumber")
     Observable<BaseResponse<CardInfoTo>> getByNumber(@Query("number") int number);
 
-    @GET("Api/Device/Get") Observable<BaseResponse<KeySwitchTo>> getEMDevice(@Query("id") int id);
+    @GET("Api/Device/Get")
+    Observable<BaseResponse<KeySwitchTo>> getEMDevice(@Query("id") int id);
 
-    @POST("Api/Expense/SimpleExpense") Observable<BaseResponse<SimpleExpenseTo>> createSimpleExpense(@Body SimpleExpenseParam param);
+    @POST("Api/Expense/SimpleExpense")
+    Observable<BaseResponse<SimpleExpenseTo>> createSimpleExpense(@Body SimpleExpenseParam param);
 
-    @GET("Api/User/QRCode/QRRead") Observable<BaseResponse<QRReadTo>> getQRRead(@Query("qrCodeContent") String qrCodeContent, @Query("deviceID") int deviceID);
+    @GET("Api/User/QRCode/QRRead")
+    Observable<BaseResponse<QRReadTo>> getQRRead(@Query("qrCodeContent") String qrCodeContent, @Query("deviceID") int deviceID);
 
-    @POST("Api/Expense/QRExpense") Observable<BaseResponse<QRExpenseTo>> addQRExpense(@Body QRExpenseParam param);
+    @POST("Api/Expense/QRExpense")
+    Observable<BaseResponse<QRExpenseTo>> addQRExpense(@Body QRExpenseParam param);
 
-    @POST("Api/Expense/WeChatFacePay") Observable<BaseResponse<WxExpenseTo>> addWxFacePayExpense(@Body WxExpenseParam param);
+    @POST("Api/Expense/WeChatFacePay")
+    Observable<BaseResponse<WxExpenseTo>> addWxFacePayExpense(@Body WxExpenseParam param);
 
-    @POST("Api/Expense/GetFacePayAuthInfo") Observable<BaseResponse<GetFacePayAuthInfoTo>> getFacePayAuthInfo(@Body GetFacePayAuthInfoParam param);
+    @POST("Api/Expense/GetFacePayAuthInfo")
+    Observable<BaseResponse<GetFacePayAuthInfoTo>> getFacePayAuthInfo(@Body GetFacePayAuthInfoParam param);
 
-    @GET("Api/Config/GetConfig") Observable<BaseResponse<String>> getConfig(@Query("key") String key);
+    @GET("Api/Config/GetConfig")
+    Observable<BaseResponse<String>> getConfig(@Query("key") String key);
 
-    @POST("Api/Expense/OfflineExpense") Observable<BaseResponse> isOfflineExpenseSuccess (@Body OfflineExpenseParam param);
+    @POST("Api/Expense/OfflineExpense")
+    Observable<BaseResponse> isOfflineExpenseSuccess(@Body OfflineExpenseParam param);
+
+    @GET("Api/User/get")
+    Observable<BaseResponse<UserGetTo>> userGetTo(@Query("number") int number, @Query("IsGetFaceInfo") boolean IsGetFaceInfo);
+
 }

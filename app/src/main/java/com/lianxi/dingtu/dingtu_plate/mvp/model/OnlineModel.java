@@ -22,6 +22,7 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.QRExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.QRReadTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseTo;
+import com.lianxi.dingtu.dingtu_plate.app.entity.UserGetTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.mvp.contract.OnlineContract;
@@ -94,5 +95,9 @@ public class OnlineModel extends BaseModel implements OnlineContract.Model {
         return mRepositoryManager.obtainRetrofitService(UserService.class).getFacePayAuthInfo(param);
     }
 
+    @Override
+    public Observable<BaseResponse<UserGetTo>> userGetTo(int number) {
+        return mRepositoryManager.obtainRetrofitService(UserService.class).userGetTo(number, false);
+    }
 
 }

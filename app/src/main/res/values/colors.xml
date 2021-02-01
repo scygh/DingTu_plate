@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">@color/color_ffffff</color>
-    <color name="colorPrimaryDark">@color/color_ffffff</color>
-    <color name="colorAccent">#4fa8fe</color>
+    <color name="colorPrimary">#FFFFFF</color>
+    <color name="colorPrimaryDark">#FFFFFF</color>
+    <color name="colorAccent">#2EA44F</color>
+    <color name="colorAccentPressed">#94D3A2</color>
+    <color name="colorAccentDisEnabled">#CCCCCC</color>
+    <color name="color_TextPrimary">#1D1D1F</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="whiteF8">#F8F8F8</color>
+    <color name="whiteF6">#F6F8FA</color>
+    <color name="whiteF2">#F2F2F2</color>
+    <color name="gray_general_hint">#ababab</color>
+
+
+
     <color name="color_ffffff">#FFFFFF</color>
     <color name="color_000000">#000000</color>
     <color name="color_db3937">#DB3937</color>
@@ -11,16 +23,13 @@
     <color name="color_f0f0f0">#F0F0F0</color>
     <color name="color_c8c8ce">#C8C8CE</color>
     <color name="color_999999">#999999</color>
-    <color name="color_62646c">#62646C</color>
     <color name="color_4d4d4d">#4D4D4D</color>
 
     <color name="colorPrimaryText">#383838</color>
     <color name="secondary_text">#757575</color>
     <color name="icons">#212121</color>
     <color name="divider">#bdbdbd</color>
-    <color name="black">#000000</color>
-    <color name="white">#FFFFFF</color>
-    <color name="whiteF8">#F8F8F8</color>
+
     <color name="tran_divider">#77000000</color>
     <color name="light_blue">#02A8F3</color>
     <color name="grey">#DADADA</color>
@@ -33,7 +42,7 @@
     <color name="diy_gray">#EEEEEE</color>
     <color name="diy_gray2">#999999</color>
 
-    <color name="gray_general_hint">#ababab</color>
+
     <color name="gray_general_lable">#666666</color>
     <color name="gray_general_title">#999999</color>
     <color name="gray_general_desc">#adadad</color>

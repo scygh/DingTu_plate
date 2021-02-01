@@ -56,11 +56,11 @@ public class MainApplication extends MultiDexApplication implements App {
     public void onCreate() {
         super.onCreate();
         Log.d("isprocess", "onCreate: 1");
-        if (mAppDelegate != null) {
-            this.mAppDelegate.onCreate(this);
-        }
         if (isProcess()) {
             Log.d("isprocess", "onCreate: 2");
+            if (mAppDelegate != null) {
+                this.mAppDelegate.onCreate(this);
+            }
             mContext = this.getApplicationContext();
             //打开串口
             serialPortUtils = new SerialPortUtils();
@@ -73,10 +73,10 @@ public class MainApplication extends MultiDexApplication implements App {
     @Override
     public void onTerminate() {
         super.onTerminate();
-        if (mAppDelegate != null) {
-            this.mAppDelegate.onTerminate(this);
-        }
         if (isProcess()) {
+            if (mAppDelegate != null) {
+                this.mAppDelegate.onTerminate(this);
+            }
             //关闭串口
             serialPortUtils.closeSerialPort();
         }

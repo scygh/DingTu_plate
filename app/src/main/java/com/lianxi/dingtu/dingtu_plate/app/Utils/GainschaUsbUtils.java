@@ -285,17 +285,12 @@ public class GainschaUsbUtils {
      */
     public void openConnect() {
         //id为打印服务操作的打印机的id，最大可以操作3台
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Log.d(TAG, "openConnect: " + deviceName);
-                    mService.openPort(mPrinterId, PortParameter.USB, deviceName, 0);//打开连接后ConnectCallback会调用回调方法
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        try {
+            Log.d(TAG, "openConnect: " + deviceName);
+            mService.openPort(mPrinterId, PortParameter.USB, deviceName, 0);//打开连接后ConnectCallback会调用回调方法
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -454,11 +449,7 @@ public class GainschaUsbUtils {
      */
     public void release() {
         if (mService != null) {
-            try {
-                mService.closePort(mPrinterId);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            closeConnect();
         }
         context.unbindService(mServiceConnection);//解绑服务
     }

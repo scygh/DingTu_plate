@@ -34,6 +34,7 @@ import com.lianxi.dingtu.dingtu_plate.app.entity.QRExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.QRReadTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.SimpleExpenseTo;
+import com.lianxi.dingtu.dingtu_plate.app.entity.UserGetTo;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseParam;
 import com.lianxi.dingtu.dingtu_plate.app.entity.WxExpenseTo;
 import com.lianxi.dingtu.dingtu_plate.mvp.contract.OnlineContract;
@@ -79,16 +80,16 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
         this.mApplication = null;
     }
 
-    public void getEMGoodsByNum(int num){
+    public void getEMGoodsByNum(int num) {
         mModel.getEMGoodsByNum(num)
                 .observeOn(Schedulers.io())
                 .compose(RxLifecycleUtils.bindToLifecycle(mRootView))
                 .subscribe(new ErrorHandleSubscriber<BaseResponse<EMGoodsTo.RowsBean.GoodsBean>>(mErrorHandler) {
                     @Override
                     public void onNext(BaseResponse<EMGoodsTo.RowsBean.GoodsBean> listBaseResponse) {
-                        if (listBaseResponse.isSuccess()){
+                        if (listBaseResponse.isSuccess()) {
                             mRootView.getEMGoodsByNum(listBaseResponse.getContent());
-                        }else {
+                        } else {
                             mRootView.showMessage(listBaseResponse.getMessage());
                             mRootView.showMessage("错误");
                         }
@@ -109,18 +110,51 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
 
                     @Override
                     public void onNext(BaseResponse<CardInfoTo> cardInfoToBaseResponse) {
-                            if (cardInfoToBaseResponse.isSuccess()){
-                                mRootView.onCardInfo(cardInfoToBaseResponse.getContent());
-                            }else {
-                                mRootView.showMessage(cardInfoToBaseResponse.getMessage());
-                                mRootView.onPayFailure();
-                            }
+                        if (cardInfoToBaseResponse.isSuccess()) {
+                            mRootView.onCardInfo(cardInfoToBaseResponse.getContent());
+                        } else {
+                            mRootView.showMessage(cardInfoToBaseResponse.getMessage());
+                            mRootView.onPayFailure();
+                        }
                     }
+
                     @Override
                     public void onError(Throwable t) {
                         mRootView.onPayFailure();
                         Log.e(TAG, "onNext: 支付失败  " + t);
                     }
+                });
+    }
+
+    public void userGetTo(int number) {
+        mModel.userGetTo(number)
+                .compose(RxUtils.applySchedulers(mRootView))
+                .subscribe(new Observer<BaseResponse<UserGetTo>>() {
+                    @Override
+                    public void onError(Throwable t) {
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(BaseResponse<UserGetTo> readCardToBaseResponse) {
+                        if (readCardToBaseResponse.getStatusCode() != 200) {
+                            mRootView.showMessage(readCardToBaseResponse.getMessage());
+                        } else {
+                            if (readCardToBaseResponse.isSuccess())
+                                if (readCardToBaseResponse.getContent() != null)
+                                    mRootView.onUserGetTo(readCardToBaseResponse.getContent());
+                        }
+                    }
+
                 });
     }
 
@@ -132,15 +166,16 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                 .subscribe(new ErrorHandleSubscriber<BaseResponse<KeySwitchTo>>(mErrorHandler) {
                     @Override
                     public void onNext(BaseResponse<KeySwitchTo> keySwitchToBaseResponse) {
-                            if (keySwitchToBaseResponse.isSuccess()){
-                                if (keySwitchToBaseResponse.getContent() != null)
-                                    mRootView.creatBill(keySwitchToBaseResponse.getContent().isKeyEnabled());
-                            }else {
-                                mRootView.showMessage(keySwitchToBaseResponse.getMessage());
-                                mRootView.onPayFailure();
+                        if (keySwitchToBaseResponse.isSuccess()) {
+                            if (keySwitchToBaseResponse.getContent() != null)
+                                mRootView.creatBill(keySwitchToBaseResponse.getContent().isKeyEnabled());
+                        } else {
+                            mRootView.showMessage(keySwitchToBaseResponse.getMessage());
+                            mRootView.onPayFailure();
 
-                            }
+                        }
                     }
+
                     @Override
                     public void onError(Throwable t) {
                         mRootView.onPayFailure();
@@ -155,15 +190,15 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                 .subscribe(new ErrorHandleSubscriber<BaseResponse<SimpleExpenseTo>>(mErrorHandler) {
                     @Override
                     public void onNext(BaseResponse<SimpleExpenseTo> simpleExpenseToBaseResponse) {
-                            if (simpleExpenseToBaseResponse.isSuccess()){
-                                if (simpleExpenseToBaseResponse.getContent() != null)
-                                    mRootView.creatSimpleSuccess(simpleExpenseToBaseResponse.getContent());
-                            }else {
-                                mRootView.showMessage(simpleExpenseToBaseResponse.getMessage());
-                                mRootView.onPayFailure();
-                            }
-
+                        if (simpleExpenseToBaseResponse.isSuccess()) {
+                            if (simpleExpenseToBaseResponse.getContent() != null)
+                                mRootView.creatSimpleSuccess(simpleExpenseToBaseResponse.getContent());
+                        } else {
+                            mRootView.showMessage(simpleExpenseToBaseResponse.getMessage());
+                            mRootView.onPayFailure();
                         }
+
+                    }
 
                     @Override
                     public void onError(Throwable t) {
@@ -185,22 +220,22 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                 .subscribe(new ErrorHandleSubscriber<BaseResponse<QRReadTo>>(mErrorHandler) {
                     @Override
                     public void onNext(BaseResponse<QRReadTo> qrReadToBaseResponse) {
-                            if (qrReadToBaseResponse.isSuccess()) {
-                                QRExpenseParam param = new QRExpenseParam();
-                                param.setQRContent(qRcode);
-                                param.setNumber(qrReadToBaseResponse.getContent().getNumber());
-                                param.setAmount(amount);
-                                param.setPattern(4);
-                                param.setPayCount(qrReadToBaseResponse.getContent().getPayCount());
-                                param.setDeviceID(id);
-                                param.setDeviceType(2);
-                                param.setQRType(qrReadToBaseResponse.getContent().getQRType());
-                                param.setListGoods(dataToQRExpense);
-                                onExpenseQR(param);
-                            }else {
-                                mRootView.showMessage(qrReadToBaseResponse.getMessage());
-                                mRootView.onPayFailure();
-                            }
+                        if (qrReadToBaseResponse.isSuccess()) {
+                            QRExpenseParam param = new QRExpenseParam();
+                            param.setQRContent(qRcode);
+                            param.setNumber(qrReadToBaseResponse.getContent().getNumber());
+                            param.setAmount(amount);
+                            param.setPattern(4);
+                            param.setPayCount(qrReadToBaseResponse.getContent().getPayCount());
+                            param.setDeviceID(id);
+                            param.setDeviceType(2);
+                            param.setQRType(qrReadToBaseResponse.getContent().getQRType());
+                            param.setListGoods(dataToQRExpense);
+                            onExpenseQR(param);
+                        } else {
+                            mRootView.showMessage(qrReadToBaseResponse.getMessage());
+                            mRootView.onPayFailure();
+                        }
                     }
 
                     @Override
@@ -221,13 +256,14 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                     @Override
                     public void onNext(BaseResponse<QRExpenseTo> qrExpenseToBaseResponse) {
 
-                            if (qrExpenseToBaseResponse.isSuccess()){
-                                mRootView.onQRPaySuccess(qrExpenseToBaseResponse.getContent());
-                            }else {
-                                mRootView.showMessage(qrExpenseToBaseResponse.getMessage());
-                                mRootView.onPayFailure();
-                            }
+                        if (qrExpenseToBaseResponse.isSuccess()) {
+                            mRootView.onQRPaySuccess(qrExpenseToBaseResponse.getContent());
+                        } else {
+                            mRootView.showMessage(qrExpenseToBaseResponse.getMessage());
+                            mRootView.onPayFailure();
+                        }
                     }
+
                     @Override
                     public void onError(Throwable t) {
                         mRootView.onPayFailure();
@@ -250,11 +286,12 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                                 Log.e(TAG, "onNext: AUTHINFO    " + getFacePayAuthInfoToBaseResponse.getContent().getAuthInfo());
                                 mRootView.onWxfacePay();
                             }
-                        }else {
+                        } else {
                             mRootView.showMessage(getFacePayAuthInfoToBaseResponse.getMessage());
                             mRootView.onPayFailure();
                         }
                     }
+
                     @Override
                     public void onError(Throwable t) {
                         mRootView.onPayFailure();
@@ -272,11 +309,11 @@ public class OnlinePresenter extends BasePresenter<OnlineContract.Model, OnlineC
                 .subscribe(new ErrorHandleSubscriber<BaseResponse<WxExpenseTo>>(mErrorHandler) {
                     @Override
                     public void onNext(BaseResponse<WxExpenseTo> wxExpenseToBaseResponse) {
-                        if (wxExpenseToBaseResponse.isSuccess()){
+                        if (wxExpenseToBaseResponse.isSuccess()) {
                             mRootView.onWxfacePaySuccess(wxExpenseToBaseResponse.getContent());
                             Log.e(TAG, "onNext: " + JSON.toJSONString(wxExpenseToBaseResponse.getContent()));
                             Log.e(TAG, "onNext: 支付成功");
-                        }else {
+                        } else {
                             mRootView.showMessage(wxExpenseToBaseResponse.getMessage());
                             mRootView.onPayFailure();
                         }

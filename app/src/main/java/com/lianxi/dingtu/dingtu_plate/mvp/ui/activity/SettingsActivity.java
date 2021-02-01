@@ -59,14 +59,6 @@ import static com.jess.arms.utils.Preconditions.checkNotNull;
  */
 public class SettingsActivity extends BaseActivity<SettingsPresenter> implements SettingsContract.View {
 
-    @BindView(R.id.back_iv)
-    ImageView backIv;
-    @BindView(R.id.toolbar_back)
-    RelativeLayout toolbarBack;
-    @BindView(R.id.toolbar_title)
-    TextView toolbarTitle;
-    @BindView(R.id.toolbar)
-    Toolbar toolbar;
     @BindView(R.id.mac_num)
     TextView macNum;
     @BindView(R.id.switch_print)
@@ -304,7 +296,6 @@ public class SettingsActivity extends BaseActivity<SettingsPresenter> implements
                                             SpUtils.put(SettingsActivity.this, AppConstant.Receipt.PLATE_INDATE, input.toString());
                                         } else {
                                             Toast.makeText(SettingsActivity.this, "设置失败：数字需小于8760", Toast.LENGTH_SHORT).show();
-                                            AudioUtils.getInstance().speakText("设置失败");
                                         }
                                     }
                                 })
@@ -375,10 +366,5 @@ public class SettingsActivity extends BaseActivity<SettingsPresenter> implements
         }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        // TODO: add setContentView(...) invocation
-        ButterKnife.bind(this);
-    }
+
 }

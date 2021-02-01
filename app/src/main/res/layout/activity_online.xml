@@ -3,451 +3,365 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/online_drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/whiteF2">
 
-    <RelativeLayout
-        android:id="@+id/online_main"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <include layout="@layout/include_title" />
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="@dimen/size_80dp"
+            android:layout_marginLeft="@dimen/offset_20dp"
+            android:layout_marginRight="@dimen/offset_20dp"
+            android:background="@drawable/main_card_bg"
+            android:orientation="horizontal">
+
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="编号"
+                android:textColor="@color/color_TextPrimary"
+                android:textSize="@dimen/textsize_28sp"
+                android:textStyle="bold" />
+
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="名称"
+                android:textColor="@color/color_TextPrimary"
+                android:textSize="@dimen/textsize_28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="单价"
+                android:textColor="@color/color_TextPrimary"
+                android:textSize="@dimen/textsize_28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="数量"
+                android:textColor="@color/color_TextPrimary"
+                android:textSize="@dimen/textsize_28sp"
+                android:textStyle="bold" />
+
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="总价"
+                android:textColor="@color/color_TextPrimary"
+                android:textSize="@dimen/textsize_28sp"
+                android:textStyle="bold" />
+
+
+        </LinearLayout>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/online_recy"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginLeft="@dimen/offset_20dp"
+            android:layout_marginRight="@dimen/offset_20dp"
+            android:layout_weight="2"
+            tools:listitem="@layout/item_goods" />
+
+        <LinearLayout
+            android:id="@+id/auto_pay"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical">
 
-            <include layout="@layout/include_title" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginRight="16dp"
-                android:background="@color/BLACK" />
-
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="80dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                android:orientation="horizontal">
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
+                android:layout_height="@dimen/size_25dp"
+                android:layout_marginLeft="@dimen/offset_20dp"
+                android:layout_marginRight="@dimen/offset_20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@color/WHITE"
-                    android:gravity="center"
-                    android:text="编号"
-                    android:textColor="@color/BLACK"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@color/WHITE"
-                    android:gravity="center"
-                    android:text="名称"
-                    android:textColor="@color/BLACK"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@color/WHITE"
-                    android:gravity="center"
-                    android:text="单价（元）"
-                    android:textColor="@color/BLACK"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@color/WHITE"
-                    android:gravity="center"
-                    android:text="数量"
-                    android:textColor="@color/BLACK"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@color/WHITE"
-                    android:gravity="center"
-                    android:text="总价（元）"
-                    android:textColor="@color/BLACK"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                android:background="@color/BLACK" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                android:layout_weight="2"
-                android:orientation="horizontal">
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
-
-                <android.support.v7.widget.RecyclerView
-                    android:id="@+id/online_recy"
-                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    tools:listitem="@layout/item_goods" />
+                    android:text="订单信息"
+                    android:textColor="@color/color_TextPrimary"
+                    android:textSize="@dimen/textsize_16sp" />
 
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:background="@color/BLACK" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:paddingLeft="@dimen/offset_50dp"
+                    android:text="支付状态"
+                    android:textColor="@color/color_TextPrimary"
+                    android:textSize="@dimen/textsize_16sp" />
+
+                <TextView
+                    android:id="@+id/tv_pay_operation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="支付操作"
+                    android:textColor="@color/color_TextPrimary"
+                    android:textSize="@dimen/textsize_16sp" />
+
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginLeft="16dp"
-                android:layout_marginRight="16dp"
-                android:layout_marginBottom="8dp"
-                android:background="@color/BLACK" />
-
             <LinearLayout
-                android:id="@+id/auto_pay"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:layout_marginBottom="@dimen/offset_20dp"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp"
-                    android:orientation="horizontal">
+                    android:id="@+id/order_information"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/progress_bg"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginLeft="16dp"
-                        android:layout_weight="3"
-                        android:text="订单信息" />
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="2"
-                        android:text="支付状态" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerHorizontal="true"
+                            android:text="总金额(元) 合计数量 "
+                            android:textColor="@color/color_TextPrimary"
+                            android:textSize="@dimen/textsize_28sp" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="3"
-                        android:paddingLeft="10dp"
-                        android:text="订单操作" />
+                        <TextView
+                            android:id="@+id/online_num"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/color_TextPrimary"
+                            android:textSize="@dimen/textsize_28sp" />
+                    </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tv_pay_operation"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="2"
-                        android:paddingLeft="10dp"
-                        android:text="支付操作" />
 
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="￥"
+                            android:textColor="@color/RED"
+                            android:textSize="@dimen/textsize_30sp" />
+
+                        <TextView
+                            android:id="@+id/online_price"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.00"
+                            android:textColor="@color/RED"
+                            android:textSize="@dimen/textsize_80sp" />
+
+
+                    </LinearLayout>
                 </LinearLayout>
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_marginBottom="16dp"
-                    android:layout_weight="1"
-                    android:orientation="horizontal">
+                    android:id="@+id/pay_state"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/progress_bg"
+                    android:orientation="vertical">
 
-                    <LinearLayout
-                        android:id="@+id/order_information"
-                        android:layout_width="0dp"
+                    <RelativeLayout
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_marginLeft="16dp"
-                        android:layout_marginRight="16dp"
-                        android:layout_weight="3"
-                        android:background="@drawable/progress_bg"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="horizontal">
-
-                            <View
-                                android:layout_width="wrap_content"
-                                android:layout_height="0dp"
-                                android:layout_weight="1" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="总数量："
-                                android:textSize="28sp" />
-
-                            <TextView
-                                android:id="@+id/online_num"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0"
-                                android:textColor="@color/BLACK"
-                                android:textSize="32dp" />
-
-                            <View
-                                android:layout_width="wrap_content"
-                                android:layout_height="0dp"
-                                android:layout_weight="1" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="总价："
-                                android:textSize="28sp" />
-
-                            <TextView
-                                android:id="@+id/online_price"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginLeft="4dp"
-                                android:layout_marginRight="4dp"
-                                android:text="0"
-                                android:textColor="@color/RED"
-                                android:textSize="60sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="元"
-                                android:textSize="28sp" />
-
-                            <View
-                                android:layout_width="wrap_content"
-                                android:layout_height="0dp"
-                                android:layout_weight="1" />
-                        </LinearLayout>
-
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/pay_state"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginLeft="16dp"
-                        android:layout_marginRight="16dp"
-                        android:layout_weight="2"
-                        android:background="@drawable/progress_bg"
-                        android:orientation="vertical">
-
-                        <RelativeLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1">
-
-                            <TextView
-                                android:id="@+id/online_pay_state_wait"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:text="等待支付"
-                                android:textSize="38sp" />
-
-                            <TextView
-                                android:id="@+id/online_pay_state_success"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:text="支付成功"
-                                android:textColor="@color/GREEN"
-                                android:textSize="38sp" />
-
-                            <TextView
-                                android:id="@+id/online_pay_state_fail"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:gravity="center"
-                                android:text="支付失败"
-                                android:textColor="@color/RED"
-                                android:textSize="38sp" />
-                        </RelativeLayout>
+                        android:layout_weight="1">
 
                         <TextView
-                            android:id="@+id/online_pay_blance"
+                            android:id="@+id/online_pay_state_wait"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:layout_weight="1"
                             android:gravity="center"
-                            android:text="余额"
-                            android:textColor="@color/BLACK"
-                            android:textSize="38sp" />
+                            android:text="等待支付"
+                            android:textColor="@color/color_TextPrimary"
+                            android:textSize="@dimen/textsize_50sp" />
 
-                        <EditText
-                            android:id="@+id/et_qr"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp"
-                            android:focusable="false"
-                            android:singleLine="true" />
-                    </LinearLayout>
+                        <TextView
+                            android:id="@+id/online_pay_state_success"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="支付成功"
+                            android:textColor="@color/colorAccent"
+                            android:textSize="@dimen/textsize_50sp" />
+
+                        <TextView
+                            android:id="@+id/online_pay_state_fail"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="支付失败"
+                            android:textColor="@color/RED"
+                            android:textSize="@dimen/textsize_50sp" />
+                    </RelativeLayout>
+
+                    <TextView
+                        android:id="@+id/online_pay_blance"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="余额"
+                        android:textColor="@color/color_TextPrimary"
+                        android:textSize="@dimen/textsize_50sp" />
+
+                    <EditText
+                        android:id="@+id/et_qr"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:focusable="false"
+                        android:singleLine="true" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/order_operation"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/progress_bg"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
                     <LinearLayout
-                        android:id="@+id/order_operation"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginLeft="16dp"
-                        android:layout_marginRight="16dp"
-                        android:layout_weight="3"
-                        android:background="@drawable/progress_bg"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:orientation="horizontal">
-
-                            <Button
-                                android:id="@+id/online_save_btn"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_margin="8dp"
-                                android:layout_weight="1"
-                                android:background="@color/GREEN"
-                                android:text="挂单"
-                                android:textColor="@color/WHITE"
-                                android:textSize="28sp" />
-
-                            <Button
-                                android:id="@+id/online_take_btn"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_margin="8dp"
-                                android:layout_weight="1"
-                                android:background="@color/GREEN"
-                                android:text="取单"
-                                android:textColor="@color/WHITE"
-                                android:textSize="28sp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:orientation="horizontal">
-
-                            <Button
-                                android:id="@+id/online_clear_btn"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_margin="8dp"
-                                android:layout_weight="1"
-                                android:background="@color/GREEN"
-                                android:text="清空"
-                                android:textColor="@color/WHITE"
-                                android:textSize="28sp" />
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/pay_operation"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginLeft="16dp"
-                        android:layout_marginRight="16dp"
-                        android:layout_weight="2"
-                        android:background="@drawable/progress_bg"
-                        android:orientation="vertical">
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal">
 
                         <Button
-                            android:id="@+id/online_wxpay_btn"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
+                            android:id="@+id/online_save_btn"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
                             android:layout_margin="8dp"
                             android:layout_weight="1"
-                            android:background="@color/YELLOWGREEN"
-                            android:text="微信人脸支付"
+                            android:background="@color/GREEN"
+                            android:text="挂单"
                             android:textColor="@color/WHITE"
                             android:textSize="28sp" />
 
                         <Button
-                            android:id="@+id/online_pay_btn"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
+                            android:id="@+id/online_take_btn"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
                             android:layout_margin="8dp"
                             android:layout_weight="1"
-                            android:background="@drawable/pay_btn_bg"
-                            android:text="支付"
+                            android:background="@color/GREEN"
+                            android:text="取单"
                             android:textColor="@color/WHITE"
-                            android:textSize="28sp"
-                            />
+                            android:textSize="28sp" />
+                    </LinearLayout>
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/online_clear_btn"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_margin="8dp"
+                            android:layout_weight="1"
+                            android:background="@color/GREEN"
+                            android:text="清空"
+                            android:textColor="@color/WHITE"
+                            android:textSize="28sp" />
                     </LinearLayout>
 
                 </LinearLayout>
-            </LinearLayout>
 
+                <LinearLayout
+                    android:id="@+id/pay_operation"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="@dimen/offset_20dp"
+                    android:layout_marginRight="@dimen/offset_20dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/online_wxpay_btn"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_margin="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/pay_btn_bg"
+                        android:text="微信人脸支付"
+                        android:textColor="@color/WHITE"
+                        android:textSize="@dimen/textsize_50sp"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/online_pay_btn"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_margin="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/pay_btn_bg"
+                        android:text="支付"
+                        android:textColor="@color/WHITE"
+                        android:textSize="@dimen/textsize_50sp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
         </LinearLayout>
 
-    </RelativeLayout>
+    </LinearLayout>
+
 
     <RelativeLayout
         android:id="@+id/online_right"
-        android:layout_width="400dp"
+        android:layout_width="@dimen/size_400dp"
         android:layout_height="match_parent"
         android:layout_gravity="right"
-        android:background="@color/WHITE"
-        android:padding="8dp">
+        android:background="@color/whiteF2"
+        android:padding="@dimen/offset_20dp">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/online_recy_menu"
